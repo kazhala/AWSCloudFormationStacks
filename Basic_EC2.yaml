@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  cloudformation template to deploy a basic flexible EC2 instance
+Parameters:
+  SecurityGroups:
+    Description: Name of an cloudformation stack that contains the sg
+    Type: 'List<AWS::EC2::SecurityGroup::Id>'
+  KeyName:
+    Description: Name of an existing EC2 key pairs for accessing new EC2 instance
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t1.micro
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - t3a.micro
+      - t3a.nano
+      - t3a.micro
+      - t3a.small
+      - t3a.medium
+      - t3a.large
+      - t3.micro
+      - t3.nano
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+    ConstraintDescription: must be a valid EC2 instance type
+  LinuxDistro:
+    Description: EC2 linux distro that would be running in this instance
+    Type: String
+    Default: amz2
+    AllowedValues:
+      - amz2
+      - amz1
+      - redhat
+      - suse
+      - ubuntu
+    ConstraintDescription: must be a supported distro(AMI) by ec2
+Mappings:
+  AWSRegion2AMI:
+    ap-southeast-2:
+      amz1: ami-01393ce9a3ca55d67
+      amz2: ami-0f767afb799f45102
+      redhat: ami-0975ce566eec139c3
+      suse: ami-091b747bf704fde4f
+      ubuntu: ami-02a599eb01e3b3c5b
+Resources:
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: !Ref InstanceType
+      SecurityGroupIds: !Ref SecurityGroups
+      KeyName: !Ref KeyName
+      ImageId: !FindInMap
+        - AWSRegion2AMI
+        - !Ref 'AWS::Region'
+        - !Ref LinuxDistro
+Outputs:
+  InstanceId:
+    Description: InstanceId of the stack EC2 instance
+    Value: !Ref EC2Instance
