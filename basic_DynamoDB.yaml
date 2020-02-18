@@ -15,8 +15,9 @@ Parameters:
     Description: name of the new table
     Type: String
     Default: NewTable
-    MinLength: '1'
+    MinLength: '3'
     MaxLength: '255'
+    AllowedPattern: '^[A-Za-z0-9][-a-zA-Z0-9_\.]*'
     ConstraintDescription: requires name for the new table
   ReadCapacityUnits:
     Description: Provisioned read throughput
