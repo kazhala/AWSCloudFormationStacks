@@ -1,0 +1,82 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Cloudformation template for creating a single dynamoDB table that would take
+  throughput, name, keys as parameters on creation time.
+Parameters:
+  TableName:
+    Description: name of the new table
+    Type: String
+    Default: NewTable
+    MinLength: '1'
+    MaxLength: '255'
+    ConstraintDescription: requires name for the new table
+  ReadCapacityUnits:
+    Description: Provisioned read throughput
+    Type: Number
+    Default: 5
+    MinValue: 1
+    MaxValue: 10000
+    ConstraintDescription: must be a valid range for DynamoDB throughput
+  WriteCapacityUnits:
+    Description: Provisioned write throughput
+    Type: Number
+    Default: 5
+    MinValue: 1
+    MaxValue: 10000
+    ConstraintDescription: must be a valid range for DynamoDB throughput
+  PartitionKey:
+    Description: partition key name for the table
+    Type: String
+    Default: PrimaryKey
+    MinLength: '1'
+    MaxLength: '255'
+    ConstraintDescription: table must contain at least one partition key
+  PartitionType:
+    Description: partition key data type
+    Type: String
+    Default: S
+    AllowedValues:
+      - S
+      - B
+      - N
+    ConstraintDescription: string, binary, number
+  SortKey:
+    Description: sort key name for the table(optional)
+    Type: String
+    MaxLength: '255'
+    ConstraintDescription: optional params
+  SortKeyType:
+    Description: sort key data type
+    Type: String
+    Default: S
+    AllowedValues:
+      - S
+      - B
+      - N
+    ConstraintDescription: string, binary, number
+Conditions:
+  HasSortKey: !Not [!Equals [!Ref SortKey, ""]]
+Resources:
+  DynamoDBTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: !Ref PartitionKey
+          AttributeType: !Ref PartitionType
+        - !If
+          - HasSortKey
+          - AttributeName: !Ref SortKey
+            AttributeType: !Ref SortKeyType
+          - !Ref 'AWS::NoValue'
+      KeySchema:
+        - AttributeName: !Ref PartitionKey
+          KeyType: 'HASH'
+        - !If
+          - HasSortKey
+          - AttributeName: !Ref SortKey
+            KeyType: 'RANGE'
+          - !Ref 'AWS::NoValue'
+      ProvisionedThroughput:
+        ReadCapacityUnits: !Ref ReadCapacityUnits
+        WriteCapacityUnits: !Ref WriteCapacityUnits
+      TableName: !Ref TableName
