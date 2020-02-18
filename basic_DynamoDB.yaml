@@ -3,6 +3,14 @@ Description: >-
   Cloudformation template for creating a single dynamoDB table that would take
   throughput, name, keys as parameters on creation time.
 Parameters:
+  BillingMode:
+    Description: billing mode for the table
+    Type: String
+    Default: PROVISIONED
+    AllowedValues:
+      - PROVISIONED
+      - PAY_PER_REQUEST
+    ConstraintDescription: provisioned is recommanded for predictable load
   TableName:
     Description: name of the new table
     Type: String
@@ -14,15 +22,15 @@ Parameters:
     Description: Provisioned read throughput
     Type: Number
     Default: 5
-    MinValue: 1
-    MaxValue: 10000
+    MinValue: 5
+    MaxValue: 40000
     ConstraintDescription: must be a valid range for DynamoDB throughput
   WriteCapacityUnits:
     Description: Provisioned write throughput
     Type: Number
     Default: 5
-    MinValue: 1
-    MaxValue: 10000
+    MinValue: 5
+    MaxValue: 40000
     ConstraintDescription: must be a valid range for DynamoDB throughput
   PartitionKey:
     Description: partition key name for the table
@@ -56,10 +64,12 @@ Parameters:
     ConstraintDescription: string, binary, number
 Conditions:
   HasSortKey: !Not [!Equals [!Ref SortKey, ""]]
+  Provisioned: !Equals [!Ref BillingMode, PROVISIONED]
 Resources:
   DynamoDBTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:
+      BillingMode: !Ref BillingMode
       AttributeDefinitions:
         - AttributeName: !Ref PartitionKey
           AttributeType: !Ref PartitionType
@@ -77,6 +87,9 @@ Resources:
             KeyType: 'RANGE'
           - !Ref 'AWS::NoValue'
       ProvisionedThroughput:
-        ReadCapacityUnits: !Ref ReadCapacityUnits
-        WriteCapacityUnits: !Ref WriteCapacityUnits
+        !If
+          - Provisioned
+          - ReadCapacityUnits: !Ref ReadCapacityUnits
+            WriteCapacityUnits: !Ref WriteCapacityUnits
+          - !Ref 'AWS::NoValue'
       TableName: !Ref TableName
