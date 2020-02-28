@@ -62,6 +62,15 @@ Resources:
           - - Key: 'WebServer'
               Value: 'Yes'
           - - !Ref 'AWS::NoValue'
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash -xe
+            sudo yum update -y
+            cd home/ec2-user
+            [[ -f .bashrc ]] && rm .bashrc
+            curl -o .bashrc https://raw.githubusercontent.com/kazhala/DotConfig/master/.bashrc
+            source .bashrc
 Outputs:
   InstanceId:
     Description: InstanceId of the stack EC2 instance
