@@ -1,0 +1,68 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  cloudformation template to deploy a basic flexible EC2 instance
+Parameters:
+  LatestAmiId:
+    Description: 'Latest ami id, automatically look up using ssm'
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+    AllowedValues:
+      - '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+  SecurityGroups:
+    Description: Name of an cloudformation stack that contains the sg
+    Type: 'List<AWS::EC2::SecurityGroup::Id>'
+  KeyName:
+    Description: Name of an existing EC2 key pairs for accessing new EC2 instance
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    ConstraintDescription: must be the name of an existing EC2 KeyPair
+  WebServer:
+    Description: Is the ec2 instance used as a webserver?
+    Type: String
+    Default: 'No'
+    AllowedValues:
+      - 'Yes'
+      - 'No'
+  InstanceType:
+    Description: EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t1.micro
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - t3a.micro
+      - t3a.nano
+      - t3a.micro
+      - t3a.small
+      - t3a.medium
+      - t3a.large
+      - t3.micro
+      - t3.nano
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+    ConstraintDescription: must be a valid EC2 instance type
+Conditions:
+  IsWebServer: !Equals [!Ref WebServer, 'Yes']
+Resources:
+  EC2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: !Ref InstanceType
+      SecurityGroupIds: !Ref SecurityGroups
+      KeyName: !Ref KeyName
+      ImageId: !Ref LatestAmiId
+      Tags:
+        !If
+          - IsWebServer
+          - - Key: 'WebServer'
+              Value: 'Yes'
+          - - !Ref 'AWS::NoValue'
+Outputs:
+  InstanceId:
+    Description: InstanceId of the stack EC2 instance
+    Value: !Ref EC2Instance
