@@ -9,6 +9,13 @@ Parameters:
     Description: Name of an existing EC2 key pairs for accessing new EC2 instance
     Type: 'AWS::EC2::KeyPair::KeyName'
     ConstraintDescription: must be the name of an existing EC2 KeyPair
+  WebServer:
+    Description: Is the ec2 instance used as a webserver?
+    Type: String
+    Default: 'No'
+    AllowedValues:
+      - 'Yes'
+      - 'No'
   InstanceType:
     Description: EC2 instance type
     Type: String
@@ -52,6 +59,8 @@ Mappings:
       redhat: ami-0975ce566eec139c3
       suse: ami-091b747bf704fde4f
       ubuntu: ami-02a599eb01e3b3c5b
+Conditions:
+  IsWebServer: !Equals [!Ref WebServer, 'Yes']
 Resources:
   EC2Instance:
     Type: 'AWS::EC2::Instance'
@@ -63,6 +72,12 @@ Resources:
         - AWSRegion2AMI
         - !Ref 'AWS::Region'
         - !Ref LinuxDistro
+      Tags:
+        !If
+          - IsWebServer
+          - - Key: 'WebServer'
+              Value: 'Yes'
+          - - !Ref 'AWS::NoValue'
 Outputs:
   InstanceId:
     Description: InstanceId of the stack EC2 instance
