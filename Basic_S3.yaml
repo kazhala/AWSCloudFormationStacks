@@ -7,7 +7,7 @@ Parameters:
     Description: Name of the bucket, be random
     Type: String
     MinLength: '6'
-    MaxLength: '255'
+    MaxLength: '63'
     AllowedPattern: '[a-z0-9]*[-a-z0-9]*'
   AccessControl:
     Description: Access control setting
