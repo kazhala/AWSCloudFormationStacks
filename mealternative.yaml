@@ -56,7 +56,7 @@ Resources:
           MinimumProtocolVersion: TLSv1.2_2018
           SslSupportMethod: sni-only
         IPV6Enabled: 'true'
-        CustomErrorResponse:
+        CustomErrorResponses:
           - ErrorCode: 403
             ErrorCachingMinTTL: 0
             ResponseCode: 200
