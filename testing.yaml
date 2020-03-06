@@ -4,7 +4,7 @@ Description: >-
 Parameters:
   Hello:
     Description: testing only
-    Type: 'AWS::EC2::SecurityGroup::Id'
+    Type: 'List<AWS::EC2::Instance::Id>'
   WebServer:
     Description: Is the security group used for web servers
     Type: String

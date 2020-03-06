@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  The cloudformation stack for mealternative webapp both frontend and backend
+Resources:
+  FrontendBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: mealternative.com
+      AccessControl: Private
+      WebsiteConfiguration:
+        IndexDocument: index.html,
+        ErrorDocument: index.html
+  BucketPolicy:
+    Type: 'AWS::S3::BucketPolicy'
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - 
+            Action:
+              - 's3:GetObject'
+            Effect: 'Allow'
+            Resource: 'arn:aws:s3:::mealternative.com/*'
+            Principal:
+              AWS: !Sub 'arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudfrontAccessIdentity}'
+  CloudfrontAccessIdentity:
+    Type: 'AWS::CloudFront::CloudFrontOriginAccessIdentity'
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: 'access-identity-mealternative-bucket' 
+  CloudfrontDistribution:
+    Type: 'AWS::CloudFront::Distribution'
+    Properties:
+      DistributionConfig:
+        Origins:
+          - 
+            DomainName: !GetAtt FrontendBucket.DomainName
+            Id: mealternativeOrigin
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudfrontAccessIdentity}' 
+        Enabled: 'true'
+        Comment: 'cloudfront-distribution-mealternative'
+        DefaultRootObject: index.html
+        DefaultCacheBehavior:
+          ViewerProtocolPolicy: 'redirect-to-https'
+          TargetOriginId: mealternativeOrigin
+          ForwardedValues: 
+            QueryString: 'false'
+            Cookies:
+              Forward: none
+        Aliases:
+          - www.mealternative.com
+          - mealternative.com
+        ViewerCertificate:
+          AcmCertificateArn: arn:aws:acm:us-east-1:378756445655:certificate/c976a3b0-ac13-4a7e-a9ae-6da35fa27931
+          MinimumProtocolVersion: TLSv1.2_2018
+          SslSupportMethod: sni-only
+        IPV6Enabled: 'true'
+        CustomErrorResponse:
+          - ErrorCode: 403
+            ErrorCachingMinTTL: 0
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ErrorCachingMinTTL: 0
+            ResponseCode: 200
+            ResponsePagePath: /index.html
