@@ -84,7 +84,7 @@ Resources:
             ErrorCachingMinTTL: 0
             ResponseCode: 200
             ResponsePagePath: /index.html
-  Route53CloudfrontRecordOrigin:
+  Route53CloudfrontRecord:
     Type: 'AWS::Route53::RecordSet'
     Properties:
       Name: !Ref BucketName
