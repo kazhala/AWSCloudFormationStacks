@@ -1,11 +1,30 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  The cloudformation stack for mealternative webapp both frontend and backend
+  A cloudformation stack to provide a complete deployment for a MERN/MEAN stack or any frontend backend
+  sperate application. Require a registered domain through any provider and a reigon us-east-1 distributed
+  SSL certificate(cloudfront only accept us-east-1 SSL). Specify the bucket name in the parameter exactly
+  the same as the domain name registered and copy the SSL arn into the AcmCertificateArn
+Parameters:
+  HostedZoneId:
+    Type: AWS::Route53::HostedZone::Id
+    Description: HostedZone where the record of route53 should be created in
+  BucketName:
+    Type: String
+    Description: BucketName should be the same as the domain name xxx.com
+    AllowedPattern: '[a-z0-9]*\.[a-z]*'
+    MinLength: '3'
+    MaxLength: '255'
+    ConstraintDescription: should be a domain name
+  AcmCertificateArn:
+    Type: String
+    Description: SSL certificate arn
+    AllowedPattern: 'arn:aws:acm:[a-z]{2}-[a-z]*-[0-9]:.*:certificate.*'
+    Default: arn:aws:acm:us-east-1:378756445655:certificate/c976a3b0-ac13-4a7e-a9ae-6da35fa27931
 Resources:
   FrontendBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
-      BucketName: mealternative.com
+      BucketName: !Ref BucketName
       AccessControl: Private
       WebsiteConfiguration:
         IndexDocument: index.html,
@@ -20,14 +39,14 @@ Resources:
             Action:
               - 's3:GetObject'
             Effect: 'Allow'
-            Resource: 'arn:aws:s3:::mealternative.com/*'
+            Resource: !Sub 'arn:aws:s3:::${BucketName}/*'
             Principal:
               AWS: !Sub 'arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${CloudfrontAccessIdentity}'
   CloudfrontAccessIdentity:
     Type: 'AWS::CloudFront::CloudFrontOriginAccessIdentity'
     Properties:
       CloudFrontOriginAccessIdentityConfig:
-        Comment: 'access-identity-mealternative-bucket' 
+        Comment: !Sub 'access-identity-${AWS::StackName}' 
   CloudfrontDistribution:
     Type: 'AWS::CloudFront::Distribution'
     Properties:
@@ -35,22 +54,22 @@ Resources:
         Origins:
           - 
             DomainName: !GetAtt FrontendBucket.DomainName
-            Id: mealternativeOrigin
+            Id: !Sub '${AWS::StackName}Origin'
             S3OriginConfig:
               OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudfrontAccessIdentity}' 
         Enabled: 'true'
-        Comment: 'cloudfront-distribution-mealternative'
+        Comment: !Sub 'cloudfront-distribution-${AWS::StackName}'
         DefaultRootObject: index.html
         DefaultCacheBehavior:
           ViewerProtocolPolicy: 'redirect-to-https'
-          TargetOriginId: mealternativeOrigin
+          TargetOriginId: !Sub ${AWS::StackName}Origin
           ForwardedValues: 
             QueryString: 'false'
             Cookies:
               Forward: none
         Aliases:
-          - www.mealternative.com
-          - mealternative.com
+          - !Sub 'www.${BucketName}'
+          - !Ref BucketName
         ViewerCertificate:
           AcmCertificateArn: arn:aws:acm:us-east-1:378756445655:certificate/c976a3b0-ac13-4a7e-a9ae-6da35fa27931
           MinimumProtocolVersion: TLSv1.2_2018
@@ -65,3 +84,23 @@ Resources:
             ErrorCachingMinTTL: 0
             ResponseCode: 200
             ResponsePagePath: /index.html
+  Route53CloudfrontRecordOrigin:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      Name: !Ref BucketName
+      AliasTarget:
+        HostedZoneId: 'Z2FDTNDATAQYW2'
+        DNSName: !GetAtt CloudfrontDistribution.DomainName
+      Comment: !Sub '${BucketName}-A-record'
+      HostedZoneId: !Ref HostedZoneId
+      Type: 'A'
+  Route53CloudfrontRecordWWW:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      Name: !Sub 'www.${BucketName}'
+      AliasTarget:
+        HostedZoneId: 'Z2FDTNDATAQYW2'
+        DNSName: !GetAtt CloudfrontDistribution.DomainName
+      Comment: !Sub '${BucketName}-A-record'
+      HostedZoneId: !Ref HostedZoneId
+      Type: 'A'
