@@ -71,7 +71,7 @@ Resources:
           - !Sub 'www.${BucketName}'
           - !Ref BucketName
         ViewerCertificate:
-          AcmCertificateArn: arn:aws:acm:us-east-1:378756445655:certificate/c976a3b0-ac13-4a7e-a9ae-6da35fa27931
+          AcmCertificateArn: !Ref AcmCertificateArn
           MinimumProtocolVersion: TLSv1.2_2018
           SslSupportMethod: sni-only
         IPV6Enabled: 'true'
