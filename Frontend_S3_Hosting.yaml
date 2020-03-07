@@ -1,9 +1,10 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  A cloudformation stack to provide a complete deployment for a MERN/MEAN stack or any frontend backend
-  sperate application. Require a registered domain through any provider and a reigon us-east-1 distributed
+  Cloudformation stack to handle a complete hosting service for the frontend app. Including S3 to store the
+  build resources, cloudfront to distribute the private data and using route53 to direct traffic to it.
+  Before using this template, require a registered domain through any provider and a reigon us-east-1 distributed
   SSL certificate(cloudfront only accept us-east-1 SSL). Specify the bucket name in the parameter exactly
-  the same as the domain name registered and copy the SSL arn into the AcmCertificateArn
+  the same as the domain name registered and copy the SSL arn into the AcmCertificateArn param field
 Parameters:
   HostedZoneId:
     Type: AWS::Route53::HostedZone::Id
