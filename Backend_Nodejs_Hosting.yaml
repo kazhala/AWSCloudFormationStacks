@@ -1,0 +1,101 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Cloudformation stack to host a nodejs backend using elasticbeanstalk
+Parameters:
+  ApplicationName:
+    Type: String
+    MinLength: 3
+    MaxLength: 100
+    AllowedPattern: '[a-z0-9A-Z-_\.]*'
+    Description: 'Application name'
+  MaxInstance:
+    Type: String
+    Description: 'Max number of instances'
+    Default: '2'
+    AllowedPattern: '[0-9]*'
+  MinInstance:
+    Type: String
+    Description: 'Min number of instances'
+    Default: '1'
+    AllowedPattern: '[0-9]*'
+  S3ZipKey:
+    Type: String
+    Description: 'S3 key of the zip file, to update EB, upload a different name, e.g.name1.0.0'
+  KeyPair:
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    Description: Name of an existing EC2 key pairs for accessing new EC2 instance
+  SecurityGroups:
+    Type: 'List<AWS::EC2::SecurityGroup::GroupName>'
+    Description: Name of an cloudformation stack that contains the sg
+  SSLCertificateArn:
+    Type: String
+    Description: SSL certificate arn
+    AllowedPattern: 'arn:aws:acm:[a-z]{2}-[a-z]*-[0-9]:.*:certificate.*'
+    Default: arn:aws:acm:ap-southeast-2:378756445655:certificate/607606ca-529e-4e68-b5b7-c387df69a582
+Resources:
+  BeanStalkApplication:
+    Type: 'AWS::ElasticBeanstalk::Application'
+    Properties:
+      ApplicationName: !Ref ApplicationName
+      Description: !Sub 'Backend for ${ApplicationName}'
+  BeanStalkApplicationVersion:
+    Type: 'AWS::ElasticBeanstalk::ApplicationVersion'
+    Properties:
+      ApplicationName: !Ref BeanStalkApplication
+      Description: !Sub 'Version of ${BeanStalkApplication}'
+      SourceBundle:
+        S3Bucket: 'elasticbeanstalk-ap-southeast-2-378756445655'
+        S3Key: !Ref S3ZipKey
+  BeanStalkConfigTemplate:
+    Type: 'AWS::ElasticBeanstalk::ConfigurationTemplate'
+    Properties:
+      ApplicationName: !Ref BeanStalkApplication
+      Description: !Sub 'Config template for ${BeanStalkApplication}'
+      SolutionStackName: '64bit Amazon Linux 2018.03 v4.13.1 running Node.js'
+      OptionSettings:
+        - Namespace: aws:autoscaling:asg
+          OptionName: MinSize
+          Value: !Ref MinInstance
+        - Namespace: aws:autoscaling:asg
+          OptionName: MaxSize
+          Value: !Ref MaxInstance
+        - Namespace: aws:ec2:instances
+          OptionName: EnableSpot
+          Value: 'true'
+        - Namespace: aws:ec2:instances
+          OptionName: SpotFleetOnDemandBase
+          Value: '1'
+        - Namespace: aws:ec2:instances
+          OptionName: SpotFleetOnDemandAboveBasePercentage
+          Value: '0'
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: EC2KeyName
+          Value: !Ref KeyPair
+        - Namespace: aws:autoscaling:launchconfiguration
+          OptionName: SecurityGroups
+          Value: !Ref SecurityGroups
+        - Namespace: aws:elb:listener:443
+          OptionName: ListenerProtocol
+          Value: HTTPS
+        - Namespace: aws:elb:listener:443
+          OptionName: SSLCertificateId
+          Value: !Ref SSLCertificateArn
+        - Namespace: aws:elb:listener:443
+          OptionName: InstancePort
+          Value: 80
+        - Namespace: aws:elasticbeanstalk:container:nodejs
+          OptionName: NodeCommand
+          Value: 'npm start'
+  BeanStalkEnvironment:
+    Type: 'AWS::ElasticBeanstalk::Environment'
+    Properties:
+      ApplicationName: !Ref BeanStalkApplication
+      Description: !Sub "${BeanStalkApplicationVersion}'s environment"
+      TemplateName: !Ref BeanStalkConfigTemplate
+      Tier:
+        Name: WebServer
+        Type: Standard
+      VersionLabel: !Ref BeanStalkApplicationVersion
+      Tags:
+        - Key: WebServer
+          Value: 'yes'
