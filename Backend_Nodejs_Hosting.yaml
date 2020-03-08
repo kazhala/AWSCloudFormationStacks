@@ -25,13 +25,41 @@ Parameters:
     Type: 'AWS::EC2::KeyPair::KeyName'
     Description: Name of an existing EC2 key pairs for accessing new EC2 instance
   SecurityGroups:
-    Type: 'List<AWS::EC2::SecurityGroup::GroupName>'
+    Type: 'AWS::EC2::SecurityGroup::GroupName'
     Description: Name of an cloudformation stack that contains the sg
   SSLCertificateArn:
     Type: String
     Description: SSL certificate arn
     AllowedPattern: 'arn:aws:acm:[a-z]{2}-[a-z]*-[0-9]:.*:certificate.*'
     Default: arn:aws:acm:ap-southeast-2:378756445655:certificate/607606ca-529e-4e68-b5b7-c387df69a582
+  ApplicationPort:
+    Type: String
+    Description: Env variable for the port
+    AllowedPattern: '[0-9]{4}'
+    Default: '8000'
+  ClientUrl:
+    Type: String
+    Description: Env variable for client
+    AllowedPattern: 'https://.*'
+    Default: 'https://mealternative.com'
+  DatabaseUrl:
+    Type: String
+    Description: Env variable for databse url
+  SendGridAPI:
+    Type: String
+    Description: Env variable for sendgrid url
+  SecretAccountJWT:
+    Type: String
+    Description: Env variable for secret account jwt
+  SecretJWT:
+    Type: String
+    Description: Env variable for secret general jwt
+  SecretRestPassword:
+    Type: String
+    Description: Env variable for secret password jwt
+  EmailFrom:
+    Type: String
+    Description: Env variable for secret password jwt
 Resources:
   BeanStalkApplication:
     Type: 'AWS::ElasticBeanstalk::Application'
@@ -86,6 +114,30 @@ Resources:
         - Namespace: aws:elasticbeanstalk:container:nodejs
           OptionName: NodeCommand
           Value: 'npm start'
+        - Namespace: aws:elasticbeanstalk:application:environment
+          OptionName: PORT
+          Value: !Ref ApplicationPort
+        - Namespace: aws:elasticbeanstalk:application:environment
+          OptionName: CLIENT_URL
+          Value: !Ref ClientUrl
+        - Namespace: aws:elasticbeanstalk:application:environment
+          OptionName: DATABASE
+          Value: !Ref DatabaseUrl
+        - Namespace: aws:elasticbeanstalk:application:environment
+          OptionName: SENDGRID_API_KEY
+          Value: !Ref SendGridAPI
+        - Namespace: aws:elasticbeanstalk:application:environment
+          OptionName: JWT_ACCOUNT_ACTIVATION
+          Value: !Ref SecretAccountJWT
+        - Namespace: aws:elasticbeanstalk:application:environment
+          OptionName: JWT_SECRET
+          Value: !Ref SecretJWT
+        - Namespace: aws:elasticbeanstalk:application:environment
+          OptionName: JWT_RESET_PASSWORD
+          Value: !Ref SecretRestPassword
+        - Namespace: aws:elasticbeanstalk:application:environment
+          OptionName: EMAIL_FROM
+          Value: !Ref EmailFrom
   BeanStalkEnvironment:
     Type: 'AWS::ElasticBeanstalk::Environment'
     Properties:
