@@ -105,3 +105,9 @@ Resources:
       Comment: !Sub '${BucketName}-A-record'
       HostedZoneId: !Ref HostedZoneId
       Type: 'A'
+Outputs:
+  FrontendBucket:
+    Description: bucketname/url for the website
+    Value: !Ref BucketName
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketName'

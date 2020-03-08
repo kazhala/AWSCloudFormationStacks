@@ -32,6 +32,16 @@ Parameters:
     Description: SSL certificate arn
     AllowedPattern: 'arn:aws:acm:[a-z]{2}-[a-z]*-[0-9]:.*:certificate.*'
     Default: arn:aws:acm:ap-southeast-2:378756445655:certificate/607606ca-529e-4e68-b5b7-c387df69a582
+  HostedZoneId:
+    Type: AWS::Route53::HostedZone::Id
+    Description: HostedZone where the record of route53 should be created in
+  FrontendStack:
+    Description: get the export value from frontend stack (bucketname example.com) for dynamically assign route53 url
+    Type: String
+    Default: mealternative
+  BackendUrl:
+    Description: if frontendstack is selected, then skip this value, otherwise, enter a prefered url
+    Type: String
   ApplicationPort:
     Type: String
     Description: Env variable for the port
@@ -60,6 +70,8 @@ Parameters:
   EmailFrom:
     Type: String
     Description: Env variable for secret password jwt
+Conditions:
+  HasFrontend: !Not [!Equals ['', !Ref FrontendStack]]
 Resources:
   BeanStalkApplication:
     Type: 'AWS::ElasticBeanstalk::Application'
@@ -144,6 +156,7 @@ Resources:
       ApplicationName: !Ref BeanStalkApplication
       Description: !Sub "${BeanStalkApplicationVersion}'s environment"
       TemplateName: !Ref BeanStalkConfigTemplate
+      CNAMEPrefix: !Ref ApplicationName
       Tier:
         Name: WebServer
         Type: Standard
@@ -151,3 +164,21 @@ Resources:
       Tags:
         - Key: WebServer
           Value: 'yes'
+  Route53CloudfrontRecord:
+    Type: 'AWS::Route53::RecordSet'
+    Properties:
+      Name: 
+        !If
+        - HasFrontend
+        - !Join
+            - '.'
+            - - 'api'
+              - Fn::ImportValue:
+                  !Sub '${FrontendStack}-BucketName'
+        - !Ref BackendUrl
+      AliasTarget:
+        HostedZoneId: 'Z2PCDNR3VC2G1N'
+        DNSName: !Sub '${ApplicationName}.ap-southeast-2.elasticbeanstalk.com'
+      Comment: !Sub '${ApplicationName}-api-A-record'
+      HostedZoneId: !Ref HostedZoneId
+      Type: 'A'
