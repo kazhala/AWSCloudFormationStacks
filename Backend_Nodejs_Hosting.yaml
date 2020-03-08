@@ -36,40 +36,11 @@ Parameters:
     Type: AWS::Route53::HostedZone::Id
     Description: HostedZone where the record of route53 should be created in
   FrontendStack:
-    Description: get the export value from frontend stack (bucketname example.com) for dynamically assign route53 url
+    Description: get the export value from frontend stack (bucketname example.com), specify either this or the backendurl
     Type: String
-    Default: mealternative
   BackendUrl:
     Description: if frontendstack is selected, then skip this value, otherwise, enter a prefered url
     Type: String
-  ApplicationPort:
-    Type: String
-    Description: Env variable for the port
-    AllowedPattern: '[0-9]{4}'
-    Default: '8000'
-  ClientUrl:
-    Type: String
-    Description: Env variable for client
-    AllowedPattern: 'https://.*'
-    Default: 'https://mealternative.com'
-  DatabaseUrl:
-    Type: String
-    Description: Env variable for databse url
-  SendGridAPI:
-    Type: String
-    Description: Env variable for sendgrid url
-  SecretAccountJWT:
-    Type: String
-    Description: Env variable for secret account jwt
-  SecretJWT:
-    Type: String
-    Description: Env variable for secret general jwt
-  SecretRestPassword:
-    Type: String
-    Description: Env variable for secret password jwt
-  EmailFrom:
-    Type: String
-    Description: Env variable for secret password jwt
 Conditions:
   HasFrontend: !Not [!Equals ['', !Ref FrontendStack]]
 Resources:
@@ -128,28 +99,28 @@ Resources:
           Value: 'npm start'
         - Namespace: aws:elasticbeanstalk:application:environment
           OptionName: PORT
-          Value: !Ref ApplicationPort
+          Value: '{{resolve:ssm:/mealternative/PORT:1}}'
         - Namespace: aws:elasticbeanstalk:application:environment
           OptionName: CLIENT_URL
-          Value: !Ref ClientUrl
+          Value: '{{resolve:ssm:/mealternative/CLIENT_URL:1}}'
         - Namespace: aws:elasticbeanstalk:application:environment
           OptionName: DATABASE
-          Value: !Ref DatabaseUrl
+          Value: '{{resolve:ssm:/mealternative/DATABASE:1}}'
         - Namespace: aws:elasticbeanstalk:application:environment
           OptionName: SENDGRID_API_KEY
-          Value: !Ref SendGridAPI
+          Value: '{{resolve:ssm:/mealternative/SENDGRID_API_KEY:1}}'
         - Namespace: aws:elasticbeanstalk:application:environment
           OptionName: JWT_ACCOUNT_ACTIVATION
-          Value: !Ref SecretAccountJWT
+          Value: '{{resolve:ssm:/mealternative/JWT_ACCOUNT_ACTIVATION:1}}'
         - Namespace: aws:elasticbeanstalk:application:environment
           OptionName: JWT_SECRET
-          Value: !Ref SecretJWT
+          Value: '{{resolve:ssm:/mealternative/JWT_SECRET:1}}'
         - Namespace: aws:elasticbeanstalk:application:environment
           OptionName: JWT_RESET_PASSWORD
-          Value: !Ref SecretRestPassword
+          Value: '{{resolve:ssm:/mealternative/JWT_RESET_PASSWORD:1}}'
         - Namespace: aws:elasticbeanstalk:application:environment
           OptionName: EMAIL_FROM
-          Value: !Ref EmailFrom
+          Value: '{{resolve:ssm:/mealternative/EMAIL_FROM:1}}'
   BeanStalkEnvironment:
     Type: 'AWS::ElasticBeanstalk::Environment'
     Properties:
