@@ -1,0 +1,50 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  cloudformation template for creating a flexible security group
+Parameters:
+  WebServer:
+    Description: Is the security group used for web servers
+    Type: String
+    Default: 'No'
+    AllowedValues:
+      - 'Yes'
+      - 'No'
+  SSHLocation:
+    Description: The IP address range to access through the SG via ssh
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+Conditions:
+  ContainsWebServer: !Equals [!Ref WebServer, "Yes"]
+Resources:
+  EC2InstanceSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Security group for controlling access to FLEX_EC2 instances
+      SecurityGroupIngress:
+        !If
+          - ContainsWebServer
+          - - IpProtocol: tcp
+              FromPort: '22'
+              ToPort: '22'
+              CidrIp: !Ref SSHLocation
+            - IpProtocol: tcp
+              FromPort: '80'
+              ToPort: '80'
+              CidrIp: 0.0.0.0/0
+            - IpProtocol: tcp
+              FromPort: '443'
+              ToPort: '443'
+              CidrIp: 0.0.0.0/0
+          - - IpProtocol: tcp
+              FromPort: '22'
+              ToPort: '22'
+              CidrIp: !Ref SSHLocation
+Outputs:
+  SecurityGroupId:
+    Description: The security group id for EC2 import reference
+    Value: !GetAtt EC2InstanceSecurityGroup.GroupId
+    Export:
+      Name: !Sub '${AWS::StackName}-SecurityGroupId'

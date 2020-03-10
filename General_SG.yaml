@@ -1,23 +1,29 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  cloudformation template for creating a flexible security group
+  cloudformation template for creating my personal sg for accessing ec2
+  instance from my two home and a remote flexible location
 Parameters:
-  WebServer:
-    Description: Is the security group used for web servers
-    Type: String
-    Default: 'No'
-    AllowedValues:
-      - 'Yes'
-      - 'No'
-  SSHLocation:
+  TurrmurraSSH:
     Description: The IP address range to access through the SG via ssh
     Type: String
     MinLength: '9'
     MaxLength: '18'
     Default: 0.0.0.0/0
     AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+  EppingSSH:
+    Description: The IP address range to access through the SG via ssh
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+  RemoteSSH:
+    Description: The IP address range to access through the SG via ssh
+    Type: String
+    MaxLength: '18'
+    AllowedPattern: '((\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})){0,1}'
 Conditions:
-  ContainsWebServer: !Equals [!Ref WebServer, "Yes"]
+  RemoteLocation: !Not [!Equals ['', !Ref RemoteSSH]]
 Resources:
   EC2InstanceSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
@@ -25,23 +31,27 @@ Resources:
       GroupDescription: Security group for controlling access to FLEX_EC2 instances
       SecurityGroupIngress:
         !If
-          - ContainsWebServer
+          - RemoteLocation
           - - IpProtocol: tcp
               FromPort: '22'
               ToPort: '22'
-              CidrIp: !Ref SSHLocation
+              CidrIp: !Ref TurrmurraSSH
             - IpProtocol: tcp
-              FromPort: '80'
-              ToPort: '80'
-              CidrIp: 0.0.0.0/0
+              FromPort: '22'
+              ToPort: '22'
+              CidrIp: !Ref EppingSSH
             - IpProtocol: tcp
-              FromPort: '443'
-              ToPort: '443'
-              CidrIp: 0.0.0.0/0
+              FromPort: '22'
+              ToPort: '22'
+              CidrIp: !Ref RemoteSSH
           - - IpProtocol: tcp
               FromPort: '22'
               ToPort: '22'
-              CidrIp: !Ref SSHLocation
+              CidrIp: !Ref TurrmurraSSH
+            - IpProtocol: tcp
+              FromPort: '22'
+              ToPort: '22'
+              CidrIp: !Ref EppingSSH
 Outputs:
   SecurityGroupId:
     Description: The security group id for EC2 import reference
