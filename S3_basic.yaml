@@ -22,6 +22,14 @@ Parameters:
       - BucketOwnerRead
       - BucketOwnerFullControl
       - AwsExecRead
+  EncryptionType:
+    Description: Which encryption to use for objects in bucket
+    Type: String
+    AllowedValues:
+      - AES256
+      - aws:kms
+Conditions:
+  UseKMS: !Equals [!Ref EncryptionType, 'aws:kms']
 Resources:
   S3Bucket:
     Type: 'AWS::S3::Bucket'
@@ -31,7 +39,8 @@ Resources:
       BucketEncryption: 
         ServerSideEncryptionConfiguration:
           - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
+              SSEAlgorithm: !Ref EncryptionType
+              KMSMasterKeyID: !If [UseKMS, '{{resolve:ssm:/kms/S3Encrypt:1}}', !Ref 'AWS::NoValue']
 Outputs:
   S3BucketName:
     Description: Name of the bucket
