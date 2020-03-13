@@ -70,3 +70,13 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Runtime: !Ref Runtime
       Timeout: !Ref Timeout
+Outputs:
+  IAMRoleArn:
+    Description: The role arn of the lambda role
+    Value: !Ref LambdaExecutionRole
+  LambdaArn:
+    Description: The arn of the lambda fucntion
+    Value: !GetAtt LambdaFunction.Arn
+  LambdaName:
+    Description: The logical name of the lambda function
+    Value: !Ref LambdaFunction

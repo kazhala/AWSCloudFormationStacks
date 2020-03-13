@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  A automation stack that will terminate all ec2 instances in all region nightly.
+  Instances with a name tag 'WebServer' will not be terminated
+Resources:
+  LambdaStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: 'https://kazhala-cform-storage.s3-ap-southeast-2.amazonaws.com/LAMBDA_general.yaml'
+      TimeoutInMinutes: '5'
+      Parameters:
+        S3Bucket: kazhala-lambda-storage
+        S3Key: StopEC2Nightly.zip
+        S3ObjectVersion: ''
+        FunctionDescription: 'Search through all region and stop all non server ec2 instances'
+        MemorySize: 128
+        Runtime: python3.8
+        Timeout: 60
+  LambdaRolePolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: !Sub '${AWS::StackName}-stop-ec2'
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: 
+              - 'ec2:DescribeInstances'
+              - 'ec2:StopInstances'
+              - 'ec2:DescribeRegions'
+              - 'ec2:DescribeTags'
+            Resource: '*'
+      Roles:
+        - Fn::GetAtt: [LambdaStack, Outputs.IAMRoleArn]
+  CloudWatchTrigger:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      Description: 'Trigger nightly at 11:00pm Sydney time to stop all non server ec2 instance'
+      ScheduleExpression: 'cron(0 12 ? * * *)'
+      State: 'ENABLED'
+      Targets:
+        - Arn: 
+            Fn::GetAtt: [LambdaStack, Outputs.LambdaArn]
+          Id: 
+            Fn::GetAtt: [LambdaStack, Outputs.LambdaName]
+  PermissionForEventsToInvokeLambda: 
+    Type: 'AWS::Lambda::Permission'
+    Properties: 
+      FunctionName: 
+        Fn::GetAtt: [LambdaStack, Outputs.LambdaArn]
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt CloudWatchTrigger.Arn
