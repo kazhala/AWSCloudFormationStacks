@@ -9,7 +9,7 @@ Resources:
       TemplateURL: 'https://kazhala-cform-storage.s3-ap-southeast-2.amazonaws.com/LAMBDA_general.yaml'
       TimeoutInMinutes: '5'
       Parameters:
-        LambdaRoleName: !Ref AWS::StackName
+        LambdaRoleName: !Sub '${AWS::StackName}-lambda-role'
         S3Bucket: kazhala-lambda-storage
         S3Key: StopEC2Nightly.zip
         S3ObjectVersion: ''
