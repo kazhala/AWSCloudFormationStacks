@@ -2,6 +2,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: >-
   A general lambda template that could be re-used within other stacks.
   Doesn't contain env variables, if env needed, edit the env variants.
+  A basic execution role is also created along with the lambda function.
 Parameters:
   S3Bucket:
     Type: String
@@ -42,6 +43,20 @@ Parameters:
 Conditions:
   HasVersion: !Not [!Equals [!Ref S3ObjectVersion, '']]
 Resources:
+  LambdaExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 'lambda.amazonaws.com'
+            Action: 'sts:AssumeRole'
+      Description: !Sub 'Lambda basic execution role for ${AWS::StackName}'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      RoleName: !Sub '${AWS::StackName}-lambda-execution'
   LambdaFunction:
     Type: 'AWS::Lambda::Function'
     Properties:
@@ -52,6 +67,6 @@ Resources:
       Description: !Ref FunctionDescription
       Handler: index.lambda_handler
       MemorySize: !Ref MemorySize
-      Role: arn:aws:iam::378756445655:role/lambda_stop_ec2
+      Role: !GetAtt LambdaExecutionRole.Arn
       Runtime: !Ref Runtime
       Timeout: !Ref Timeout
