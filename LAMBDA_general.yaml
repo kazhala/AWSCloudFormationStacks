@@ -1,0 +1,57 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  A general lambda template that could be re-used within other stacks.
+  Doesn't contain env variables, if env needed, edit the env variants.
+Parameters:
+  S3Bucket:
+    Type: String
+    Description: The bucket where the code zip file resides
+    MinLength: 3
+    MaxLength: 63
+    AllowedPattern: '^[0-9A-Za-z\.\-_]*(?<!\.)$'
+  S3Key:
+    Type: String
+    Description: 'The Amazon S3 key of the deployment package.'
+    MinLength: 1
+    MaxLength: 1024
+  S3ObjectVersion:
+    Type: String
+    Description: 'The version of the s3 object, skip this if no version'
+  FunctionDescription:
+    Type: String
+    Description: 'The description that should be displayed on the lambda console'
+    MaxLength: 256
+  MemorySize:
+    Type: Number
+    MinValue: 128
+    MaxValue: 3008
+    Default: 128
+  Runtime:
+    Type: String
+    AllowedValues:
+      - python3.8
+      - python3.7
+      - nodejs12.x
+      - nodejs10.x
+    Default: python3.8
+  Timeout:
+    Type: Number
+    MinValue: 3
+    MaxValue: 900
+    Default: 3
+Conditions:
+  HasVersion: !Not [!Equals [!Ref S3ObjectVersion, '']]
+Resources:
+  LambdaFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Code:
+        S3Bucket: !Ref S3Bucket
+        S3Key: !Ref S3Key
+        S3ObjectVersion: !If [HasVersion, !Ref S3ObjectVersion, !Ref 'AWS::NoValue']
+      Description: !Ref FunctionDescription
+      Handler: index.lambda_handler
+      MemorySize: !Ref MemorySize
+      Role: arn:aws:iam::378756445655:role/lambda_stop_ec2
+      Runtime: !Ref Runtime
+      Timeout: !Ref Timeout
