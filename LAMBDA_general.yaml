@@ -4,6 +4,9 @@ Description: >-
   Doesn't contain env variables, if env needed, edit the env variants.
   A basic execution role is also created along with the lambda function.
 Parameters:
+  LambdaRoleName:
+    Type: String
+    Description: The name of the lambda execution role
   S3Bucket:
     Type: String
     Description: The bucket where the code zip file resides
@@ -42,6 +45,7 @@ Parameters:
     Default: 3
 Conditions:
   HasVersion: !Not [!Equals [!Ref S3ObjectVersion, '']]
+  HasRoleName: !Not [!Equals [!Ref LambdaRoleName, '']]
 Resources:
   LambdaExecutionRole:
     Type: 'AWS::IAM::Role'
@@ -56,7 +60,7 @@ Resources:
       Description: !Sub 'Lambda basic execution role for ${AWS::StackName}'
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      RoleName: !Sub '${AWS::StackName}-lambda-execution'
+      RoleName: !If [HasRoleName, !Ref LambdaRoleName, !Sub '${AWS::StackName}-lambda-execution']
   LambdaFunction:
     Type: 'AWS::Lambda::Function'
     Properties:
