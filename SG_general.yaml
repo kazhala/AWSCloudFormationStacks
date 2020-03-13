@@ -52,6 +52,19 @@ Resources:
               FromPort: '22'
               ToPort: '22'
               CidrIp: !Ref EppingSSH
+  WebServerSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: SG to attach to a webserver
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '80'
+          ToPort: '80'
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: '443'
+          ToPort: '443'
+          CidrIp: 0.0.0.0/0
 Outputs:
   SecurityGroupId:
     Description: The security group id for EC2 import reference
