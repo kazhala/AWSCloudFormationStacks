@@ -8,6 +8,9 @@ Parameters:
     Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
     AllowedValues:
       - '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+  SubnetId:
+    Description: The subnet this instance should be deployed to
+    Type: 'AWS::EC2::Subnet::Id'
   SecurityGroups:
     Description: Name of an cloudformation stack that contains the sg
     Type: 'List<AWS::EC2::SecurityGroup::Id>'
@@ -44,8 +47,25 @@ Conditions:
 Resources:
   EC2Instance:
     Type: 'AWS::EC2::Instance'
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          InstallAndCustomize:
+            - Install
+            - Customize
+        Install:
+          packages:
+            yum:
+              python3: []
+              git: []
+        Customize:
+          commands:
+            downloadBashrc:
+              command: 'curl -o .bashrc https://raw.githubusercontent.com/kazhala/DotConfig/master/.bashrc'
+              cwd: '/home/ec2-user'
     Properties:
       InstanceType: !Ref InstanceType
+      SubnetId: !Ref SubnetId
       SecurityGroupIds: !Ref SecurityGroups
       KeyName: !Ref KeyName
       ImageId: !Ref LatestAmiId
@@ -56,14 +76,14 @@ Resources:
               Value: 'Yes'
           - - !Ref 'AWS::NoValue'
       UserData:
-        Fn::Base64:
-          !Sub |
-            #!/bin/bash -xe
-            sudo yum update -y
-            cd home/ec2-user
-            [[ -f .bashrc ]] && rm .bashrc
-            curl -o .bashrc https://raw.githubusercontent.com/kazhala/DotConfig/master/.bashrc
-            source .bashrc
+        'Fn::Base64': !Sub |
+            #!/bin/bash -ex
+             yum update -y
+            /opt/aws/bin/cfn-init -v -s ${AWS::StackName} -c InstallAndCustomize -r EC2Instance --region ${AWS::Region}
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2Instance --region ${AWS::Region}
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT10M
 Outputs:
   InstanceId:
     Description: InstanceId of the stack EC2 instance
