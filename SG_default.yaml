@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  cloudformation template for creating my personal sg for accessing ec2
-  instance from my two home and a remote flexible location
+  A cloudformation template for creating my personal security groups
+  used within the default VPC
 Parameters:
   TurrmurraSSH:
     Description: The IP address range to access through the SG via ssh
@@ -25,7 +25,7 @@ Parameters:
 Conditions:
   RemoteLocation: !Not [!Equals ['', !Ref RemoteSSH]]
 Resources:
-  EC2InstanceSecurityGroup:
+  DefaultSSHSG:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupDescription: Security group for controlling access to FLEX_EC2 instances
@@ -52,7 +52,7 @@ Resources:
               FromPort: '22'
               ToPort: '22'
               CidrIp: !Ref EppingSSH
-  WebServerSecurityGroup:
+  DefaultWebServerSG:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupDescription: SG to attach to a webserver
@@ -66,8 +66,9 @@ Resources:
           ToPort: '443'
           CidrIp: 0.0.0.0/0
 Outputs:
-  SecurityGroupId:
-    Description: The security group id for EC2 import reference
-    Value: !GetAtt EC2InstanceSecurityGroup.GroupId
-    Export:
-      Name: !Sub '${AWS::StackName}-SecurityGroupId'
+  DefaultSSHSG:
+    Description: The default ssh security group id for EC2 import reference
+    Value: !GetAtt DefaultSSHSG.GroupId
+  DefaultWebServerSG:
+    Description: The default webserver security group id for EC2 import reference
+    Value: !GetAtt DefaultWebServerSG.GroupId
