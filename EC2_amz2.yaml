@@ -83,7 +83,7 @@ Resources:
             /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2Instance --region ${AWS::Region}
     CreationPolicy:
       ResourceSignal:
-        Timeout: PT10M
+        Timeout: PT5M
 Outputs:
   InstanceId:
     Description: InstanceId of the stack EC2 instance
