@@ -57,9 +57,14 @@ Resources:
               ToPort: '22'
               CidrIp: !Ref EppingSSH
       VpcId: !If [NonDefaultVPC, !Ref VpcId, !Ref 'AWS::NoValue']
-      Tag:
+      GroupName: !If [NonDefaultVPC, !Sub '${AWS::StackName}-ssh', 'default-ssh']
+      Tags:
         - Key: Name
-          Value: !if [NonDefaultVPC, !Sub '${AWS::StackName}-ssh', 'default-ssh']
+          Value:
+            !If
+              - NonDefaultVPC
+              - !Sub '${AWS::StackName}-ssh'
+              - 'default-ssh'
   DefaultWebServerSG:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -74,9 +79,14 @@ Resources:
           ToPort: '443'
           CidrIp: 0.0.0.0/0
       VpcId: !If [NonDefaultVPC, !Ref VpcId, !Ref 'AWS::NoValue']
-      Tag:
+      GroupName: !If [NonDefaultVPC, !Sub '${AWS::StackName}-webserver', 'default-webserver']
+      Tags:
         - Key: Name
-          Value: !if [NonDefaultVPC, !Sub '${AWS::StackName}-webserver', 'default-webserver']
+          Value:
+            !If
+              - NonDefaultVPC
+              - !Sub '${AWS::StackName}-webserver'
+              - 'default-webserver'
 Outputs:
   DefaultSSHSG:
     Description: The default ssh security group id for EC2 import reference
