@@ -286,6 +286,7 @@ Resources:
           Value: !Sub '${AWS::StackName}-default-instance'
   PrivateSG:
     Type: 'AWS::EC2::SecurityGroup'
+    DependsOn: DefaultSecurityGroup
     Properties:
       GroupDescription: 'Private security group for connecting private instance to bastion host'
       GroupName: !Sub '${AWS::StackName}-private'
@@ -294,6 +295,7 @@ Resources:
           FromPort: -1
           ToPort: -1
           SourceSecurityGroupId: !GetAtt [DefaultSecurityGroup, Outputs.DefaultSSHSG]
+      VpcId: !Ref CustomVPC
   PrivateInstance:
     Type: 'AWS::CloudFormation::Stack'
     DependsOn: PrivateARoute
@@ -302,8 +304,8 @@ Resources:
       TimeoutInMinutes: '10'
       Parameters:
         SubnetId: !Ref PrivateSubnetA
-        SecurityGroups: !GetAtt [DefaultSecurityGroup, Outputs.DefaultSSHSG]
+        SecurityGroups: !Ref PrivateSG
         KeyName: ap-southeast-2_playground
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-default-instance'
+          Value: !Sub '${AWS::StackName}-private-instance'
