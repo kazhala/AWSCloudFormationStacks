@@ -269,7 +269,7 @@ Resources:
   DefaultSecurityGroup:
     Type: 'AWS::CloudFormation::Stack'
     Properties:
-      TemplateURL: 'https://kazhala-cform-storage.s3-ap-southeast-2.amazonaws.com/SG_default.yaml'
+      TemplateURL: 'https://kazhala-cloudformation-storage.s3-ap-southeast-2.amazonaws.com/SG_default.yaml'
       TimeoutInMinutes: '5'
       Parameters:
         VpcId: !Ref CustomVPC
@@ -280,7 +280,7 @@ Resources:
   DefaultInstance:
     Type: 'AWS::CloudFormation::Stack'
     Properties:
-      TemplateURL: 'https://kazhala-cform-storage.s3-ap-southeast-2.amazonaws.com/EC2_amz2.yaml'
+      TemplateURL: 'https://kazhala-cloudformation-storage.s3-ap-southeast-2.amazonaws.com/EC2_amz2.yaml'
       TimeoutInMinutes: '10'
       Parameters:
         SubnetId: !Ref PublicSubnetB
@@ -305,7 +305,7 @@ Resources:
     Type: 'AWS::CloudFormation::Stack'
     DependsOn: PrivateARoute
     Properties:
-      TemplateURL: 'https://kazhala-cform-storage.s3-ap-southeast-2.amazonaws.com/EC2_amz2.yaml'
+      TemplateURL: 'https://kazhala-cloudformation-storage.s3-ap-southeast-2.amazonaws.com/EC2_amz2.yaml'
       TimeoutInMinutes: '10'
       Parameters:
         SubnetId: !Ref PrivateSubnetA
