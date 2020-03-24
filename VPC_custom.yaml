@@ -288,7 +288,7 @@ Resources:
         KeyName: ap-southeast-2_playground
       Tags:
         - Key: Name
-          Value: !Sub '${NamePrefix}-default-instance'
+          Value: !Sub '${NamePrefix}-bastion'
   PrivateSG:
     Type: 'AWS::EC2::SecurityGroup'
     DependsOn: DefaultSecurityGroup
@@ -313,4 +313,4 @@ Resources:
         KeyName: ap-southeast-2_playground
       Tags:
         - Key: Name
-          Value: !Sub '${NamePrefix}-private-instance'
+          Value: !Sub '${NamePrefix}-private'
