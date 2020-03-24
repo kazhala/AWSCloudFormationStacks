@@ -6,13 +6,11 @@ Parameters:
     Description: 'Latest ami id, automatically look up using ssm'
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
     Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
-    AllowedValues:
-      - '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
   SubnetId:
     Description: The subnet this instance should be deployed to
     Type: 'AWS::EC2::Subnet::Id'
   SecurityGroups:
-    Description: Name of an cloudformation stack that contains the sg
+    Description: A list of secruity group ids
     Type: 'List<AWS::EC2::SecurityGroup::Id>'
   KeyName:
     Description: Name of an existing EC2 key pairs for accessing new EC2 instance
