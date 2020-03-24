@@ -1,0 +1,283 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Cloudformation template for building a functional custom VPC with public and private
+  subnet as well as bastion host and private instance
+Parameters:
+  VPCIPCidr:
+    Type: String
+    AllowedPattern: '^[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}/[0-9]{2}'
+    Description: A valid ipcidr block for vpc
+    Default: '10.1.0.0/16'
+  SubnetCidr:
+    Type: CommaDelimitedList
+    Description: A list of ipcidr block for subnet, expecting 6
+    Default: '10.1.1.0/24, 10.1.2.0/24, 10.1.3.0/24, 10.1.4.0/24, 10.1.5.0/24, 10.1.6.0/24'
+  TurrmurraSSH:
+    Description: The IP address range to access through the SG via ssh
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+  EppingSSH:
+    Description: The IP address range to access through the SG via ssh
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 0.0.0.0/0
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})/(\d{1,2})'
+Resources:
+  CustomVPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: !Ref VPCIPCidr
+      EnableDnsHostnames: 'true'
+      EnableDnsSupport: 'true'
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+  PublicSubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      CidrBlock: !Select
+        - 0
+        - !Ref SubnetCidr
+      VpcId: !Ref CustomVPC
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PublicA'
+  PublicSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      CidrBlock: !Select
+        - 1
+        - !Ref SubnetCidr
+      VpcId: !Ref CustomVPC
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PublicB'
+  PublicSubnetC:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select
+        - 2
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      CidrBlock: !Select
+        - 2
+        - !Ref SubnetCidr
+      VpcId: !Ref CustomVPC
+      MapPublicIpOnLaunch: 'true'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PublicC'
+  PrivateSubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      CidrBlock: !Select
+        - 3
+        - !Ref SubnetCidr
+      VpcId: !Ref CustomVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PrivateA'
+  PrivateSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      CidrBlock: !Select
+        - 4
+        - !Ref SubnetCidr
+      VpcId: !Ref CustomVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PrivateB'
+  PrivateSubnetC:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select
+        - 2
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      CidrBlock: !Select
+        - 5
+        - !Ref SubnetCidr
+      VpcId: !Ref CustomVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PrivateC'
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub 'igw-${AWS::StackName}'
+  GatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref CustomVPC
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref CustomVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-Public'
+  PrivateRouteTableA:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref CustomVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PrivateA'
+  PrivateRouteTableB:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref CustomVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PrivateB'
+  PrivateRouteTableC:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref CustomVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-PrivateC'
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: GatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicASubnetAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetA
+  PublicBSubnetAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetB
+  PublicCSubnetAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnetC
+  PublicAElasticIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: 'vpc'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-natA'
+  PublicBElasticIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: 'vpc'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-natB'
+  PublicCElasticIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: 'vpc'
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-natC'
+  SubnetANAT:
+    Type: 'AWS::EC2::NatGateway'
+    DependsOn: PublicAElasticIP
+    Properties: 
+      AllocationId: !GetAtt PublicAElasticIP.AllocationId
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+        - Key: Name
+          Value: !Sub 'nat-A-${AWS::StackName}'
+  SubnetBNAT:
+    Type: 'AWS::EC2::NatGateway'
+    DependsOn: PublicBElasticIP
+    Properties: 
+      AllocationId: !GetAtt PublicBElasticIP.AllocationId
+      SubnetId: !Ref PublicSubnetB
+      Tags:
+        - Key: Name
+          Value: !Sub 'nat-B-${AWS::StackName}'
+  SubnetCNAT:
+    Type: 'AWS::EC2::NatGateway'
+    DependsOn: PublicCElasticIP
+    Properties: 
+      AllocationId: !GetAtt PublicCElasticIP.AllocationId
+      SubnetId: !Ref PublicSubnetC
+      Tags:
+        - Key: Name
+          Value: !Sub 'nat-C-${AWS::StackName}'
+  PrivateARoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: SubnetANAT
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref SubnetANAT
+      RouteTableId: !Ref PrivateRouteTableA
+  PrivateBRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: SubnetBNAT
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref SubnetBNAT
+      RouteTableId: !Ref PrivateRouteTableB
+  PrivateCRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: SubnetCNAT
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref SubnetCNAT
+      RouteTableId: !Ref PrivateRouteTableC
+  PrivateASubnetAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableA
+      SubnetId: !Ref PrivateSubnetA
+  PrivateBSubnetAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableB
+      SubnetId: !Ref PrivateSubnetB
+  PrivateCSubnetAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableC
+      SubnetId: !Ref PrivateSubnetC
+  DefaultSecurityGroup:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: 'https://kazhala-cform-storage.s3-ap-southeast-2.amazonaws.com/SG_default.yaml'
+      TimeoutInMinutes: '5'
+      Parameters:
+        VpcId: !Ref CustomVPC
+        TurrmurraSSH: !Ref TurrmurraSSH
+        EppingSSH: !Ref EppingSSH
+        RemoteSSH: ''
+  DefaultInstance:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: 'https://kazhala-cform-storage.s3-ap-southeast-2.amazonaws.com/EC2_amz2.yaml'
+      TimeoutInMinutes: '10'
+      Parameters:
+        SubnetId: !Ref PublicSubnetB
+        SecurityGroups: !GetAtt [DefaultSecurityGroup, Outputs.DefaultSSHSG]
+        KeyName: ap-southeast-2_playground
