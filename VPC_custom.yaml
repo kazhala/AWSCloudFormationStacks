@@ -281,3 +281,29 @@ Resources:
         SubnetId: !Ref PublicSubnetB
         SecurityGroups: !GetAtt [DefaultSecurityGroup, Outputs.DefaultSSHSG]
         KeyName: ap-southeast-2_playground
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-default-instance'
+  PrivateSG:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'Private security group for connecting private instance to bastion host'
+      GroupName: !Sub '${AWS::StackName}-private'
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          SourceSecurityGroupId: !GetAtt [DefaultSecurityGroup, Outputs.DefaultSSHSG]
+  PrivateInstance:
+    Type: 'AWS::CloudFormation::Stack'
+    DependsOn: PrivateARoute
+    Properties:
+      TemplateURL: 'https://kazhala-cform-storage.s3-ap-southeast-2.amazonaws.com/EC2_amz2.yaml'
+      TimeoutInMinutes: '10'
+      Parameters:
+        SubnetId: !Ref PrivateSubnetA
+        SecurityGroups: !GetAtt [DefaultSecurityGroup, Outputs.DefaultSSHSG]
+        KeyName: ap-southeast-2_playground
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-default-instance'
