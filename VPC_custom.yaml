@@ -301,6 +301,9 @@ Resources:
           ToPort: -1
           SourceSecurityGroupId: !GetAtt [DefaultSecurityGroup, Outputs.DefaultSSHSG]
       VpcId: !Ref CustomVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${NamePrefix}-private'
   PrivateInstance:
     Type: 'AWS::CloudFormation::Stack'
     DependsOn: PrivateARoute
