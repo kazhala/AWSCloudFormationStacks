@@ -6,6 +6,9 @@ Parameters:
   VpcId:
     Description: The vpc id of which this sg should be in, skip this value to use default VPC
     Type: String
+  NamePrefix:
+    Description: Prefix for the security group, specify this when creating through nested stack
+    Type: String
   TurrmurraSSH:
     Description: The IP address range to access through the SG via ssh
     Type: String
@@ -57,13 +60,13 @@ Resources:
               ToPort: '22'
               CidrIp: !Ref EppingSSH
       VpcId: !If [NonDefaultVPC, !Ref VpcId, !Ref 'AWS::NoValue']
-      GroupName: !If [NonDefaultVPC, !Sub '${AWS::StackName}-ssh', 'default-ssh']
+      GroupName: !If [NonDefaultVPC, !Sub '${NamePrefix}-ssh', 'default-ssh']
       Tags:
         - Key: Name
           Value:
             !If
               - NonDefaultVPC
-              - !Sub '${AWS::StackName}-ssh'
+              - !Sub '${NamePrefix}-ssh'
               - 'default-ssh'
   DefaultWebServerSG:
     Type: 'AWS::EC2::SecurityGroup'
@@ -79,13 +82,13 @@ Resources:
           ToPort: '443'
           CidrIp: 0.0.0.0/0
       VpcId: !If [NonDefaultVPC, !Ref VpcId, !Ref 'AWS::NoValue']
-      GroupName: !If [NonDefaultVPC, !Sub '${AWS::StackName}-webserver', 'default-webserver']
+      GroupName: !If [NonDefaultVPC, !Sub '${NamePrefix}-webserver', 'default-webserver']
       Tags:
         - Key: Name
           Value:
             !If
               - NonDefaultVPC
-              - !Sub '${AWS::StackName}-webserver'
+              - !Sub '${NamePrefix}-webserver'
               - 'default-webserver'
 Outputs:
   DefaultSSHSG:
