@@ -345,7 +345,7 @@ Resources:
     Properties:
       DeliverLogsPermissionArn: !GetAtt FlowLogRole.Arn
       LogDestinationType: 'cloud-watch-logs'
-      LogGroupName: 'FlowLogsGroup'
+      LogGroupName: '/kazhala/vpc/flowlogs'
       ResourceId: !Ref CustomVPC
       ResourceType: 'VPC'
       TrafficType: 'ALL'
