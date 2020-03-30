@@ -308,3 +308,45 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '${NamePrefix}-private'
+  FlowLogRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      Description: !Sub '${AWS::StackName} flow log role'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - vpc-flow-logs.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: flow-log-inline
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Resource: "*"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:DescribeLogGroups"
+                  - "logs:DescribeLogStreams"
+                  - "logs:PutLogEvents"
+      Tags:
+        - Key: Name
+          Value: !Sub '${NamePrefix}-vpc-flow-log'
+  VPCFlowLog:
+    Type: 'AWS::EC2::FlowLog'
+    DependsOn:
+      - CustomVPC
+      - FlowLogRole
+    Properties:
+      DeliverLogsPermissionArn: !GetAtt FlowLogRole.Arn
+      LogDestinationType: 'cloud-watch-logs'
+      LogGroupName: 'FlowLogsGroup'
+      ResourceId: !Ref CustomVPC
+      ResourceType: 'VPC'
+      TrafficType: 'ALL'
+
