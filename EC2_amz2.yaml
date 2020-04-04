@@ -3,7 +3,7 @@ Description: >-
   cloudformation template to deploy a basic flexible EC2 instance
 Parameters:
   InstanceRole:
-    Description: 'Name of the instance role, skip the value if don\'t have one'
+    Description: "Name of the instance role, skip the value if don't have one"
     Type: String
   LatestAmiId:
     Description: 'Latest ami id, automatically look up using ssm'
@@ -45,7 +45,7 @@ Parameters:
     ConstraintDescription: must be a valid EC2 instance type
 Conditions:
   IsWebServer: !Equals [!Ref WebServer, 'Yes']
-  AssociateRole: !Not [!Equals [!Ref InstancePermission, '']]
+  AssociateRole: !Not [!Equals [!Ref InstanceRole, '']]
 Resources:
   EC2Instance:
     Type: 'AWS::EC2::Instance'
