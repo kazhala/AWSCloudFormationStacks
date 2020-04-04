@@ -139,12 +139,44 @@ Resources:
       TemplateURL: 'https://kazhala-cloudformation-storage.s3-ap-southeast-2.amazonaws.com/EC2_amz2.yaml'
       TimeoutInMinutes: '10'
       Parameters:
+        InstanceRole: !Ref InstanceRole
         SubnetId: !Ref PublicSubnetB
         SecurityGroups: !GetAtt [DefaultSecurityGroup, Outputs.DefaultSSHSG]
         KeyName: ap-southeast-2_playground
       Tags:
         - Key: Name
           Value: !Sub '${NamePrefix}-general'
+  InstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      Description: !Sub '${AWS::StackName} ec2 instance role'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: instance-role-inline
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Resource: "*"
+                Action:
+                  - "s3:*"
+                  - "cloudformation:*"
+                  - "ec2:*"
+  InstanceProfile:
+    DependsOn: InstanceRole
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      InstanceProfileName: !Ref InstanceRole
+      Roles:
+        - !Ref InstanceRole
   FlowLogRole:
     Type: 'AWS::IAM::Role'
     Properties:
