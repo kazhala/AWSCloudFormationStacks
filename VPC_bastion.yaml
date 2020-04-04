@@ -82,6 +82,45 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '${NamePrefix}-PublicC'
+  PrivateSubnetA:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      CidrBlock: !Select
+        - 3
+        - !Ref SubnetCidr
+      VpcId: !Ref CustomVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${NamePrefix}-PrivateA'
+  PrivateSubnetB:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select
+        - 1
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      CidrBlock: !Select
+        - 4
+        - !Ref SubnetCidr
+      VpcId: !Ref CustomVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${NamePrefix}-PrivateB'
+  PrivateSubnetC:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      AvailabilityZone: !Select
+        - 2
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      CidrBlock: !Select
+        - 5
+        - !Ref SubnetCidr
+      VpcId: !Ref CustomVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${NamePrefix}-PrivateC'
   InternetGateway:
     Type: 'AWS::EC2::InternetGateway'
     Properties:
@@ -100,6 +139,27 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '${NamePrefix}-Public'
+  PrivateRouteTableA:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref CustomVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${NamePrefix}-PrivateA'
+  PrivateRouteTableB:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref CustomVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${NamePrefix}-PrivateB'
+  PrivateRouteTableC:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref CustomVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${NamePrefix}-PrivateC'
   PublicRoute:
     Type: 'AWS::EC2::Route'
     DependsOn: GatewayAttachment
@@ -122,6 +182,81 @@ Resources:
     Properties:
       RouteTableId: !Ref PublicRouteTable
       SubnetId: !Ref PublicSubnetC
+  PublicAElasticIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: 'vpc'
+  PublicBElasticIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: 'vpc'
+  PublicCElasticIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: 'vpc'
+  SubnetANAT:
+    Type: 'AWS::EC2::NatGateway'
+    DependsOn: PublicAElasticIP
+    Properties: 
+      AllocationId: !GetAtt PublicAElasticIP.AllocationId
+      SubnetId: !Ref PublicSubnetA
+      Tags:
+        - Key: Name
+          Value: !Sub 'nat-A-${NamePrefix}'
+  SubnetBNAT:
+    Type: 'AWS::EC2::NatGateway'
+    DependsOn: PublicBElasticIP
+    Properties: 
+      AllocationId: !GetAtt PublicBElasticIP.AllocationId
+      SubnetId: !Ref PublicSubnetB
+      Tags:
+        - Key: Name
+          Value: !Sub 'nat-B-${NamePrefix}'
+  SubnetCNAT:
+    Type: 'AWS::EC2::NatGateway'
+    DependsOn: PublicCElasticIP
+    Properties: 
+      AllocationId: !GetAtt PublicCElasticIP.AllocationId
+      SubnetId: !Ref PublicSubnetC
+      Tags:
+        - Key: Name
+          Value: !Sub 'nat-C-${NamePrefix}'
+  PrivateARoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: SubnetANAT
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref SubnetANAT
+      RouteTableId: !Ref PrivateRouteTableA
+  PrivateBRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: SubnetBNAT
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref SubnetBNAT
+      RouteTableId: !Ref PrivateRouteTableB
+  PrivateCRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: SubnetCNAT
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref SubnetCNAT
+      RouteTableId: !Ref PrivateRouteTableC
+  PrivateASubnetAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableA
+      SubnetId: !Ref PrivateSubnetA
+  PrivateBSubnetAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableB
+      SubnetId: !Ref PrivateSubnetB
+  PrivateCSubnetAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTableC
+      SubnetId: !Ref PrivateSubnetC
   DefaultSecurityGroup:
     Type: 'AWS::CloudFormation::Stack'
     Properties:
@@ -145,6 +280,34 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '${NamePrefix}-bastion'
+  PrivateSG:
+    Type: 'AWS::EC2::SecurityGroup'
+    DependsOn: DefaultSecurityGroup
+    Properties:
+      GroupDescription: 'Private security group for connecting private instance to bastion host'
+      GroupName: !Sub '${NamePrefix}-private'
+      SecurityGroupIngress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          SourceSecurityGroupId: !GetAtt [DefaultSecurityGroup, Outputs.DefaultSSHSG]
+      VpcId: !Ref CustomVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${NamePrefix}-private'
+  PrivateInstance:
+    Type: 'AWS::CloudFormation::Stack'
+    DependsOn: PrivateARoute
+    Properties:
+      TemplateURL: 'https://kazhala-cloudformation-storage.s3-ap-southeast-2.amazonaws.com/EC2_amz2.yaml'
+      TimeoutInMinutes: '10'
+      Parameters:
+        SubnetId: !Ref PrivateSubnetA
+        SecurityGroups: !Ref PrivateSG
+        KeyName: ap-southeast-2_playground
+      Tags:
+        - Key: Name
+          Value: !Sub '${NamePrefix}-private'
   FlowLogRole:
     Type: 'AWS::IAM::Role'
     Properties:
