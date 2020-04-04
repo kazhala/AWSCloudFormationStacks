@@ -2,6 +2,13 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: >-
   cloudformation template to deploy a basic flexible EC2 instance
 Parameters:
+  InstancePermission:
+    Description: 'Wether to associate instance role with the instance to grant permission'
+    Type: String
+    Default: 'No'
+    AllowedValues:
+      - 'Yes'
+      - 'No'
   LatestAmiId:
     Description: 'Latest ami id, automatically look up using ssm'
     Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
@@ -42,6 +49,7 @@ Parameters:
     ConstraintDescription: must be a valid EC2 instance type
 Conditions:
   IsWebServer: !Equals [!Ref WebServer, 'Yes']
+  AssociateRole: !Equals [!Ref InstancePermission, 'Yes']
 Resources:
   EC2Instance:
     Type: 'AWS::EC2::Instance'
@@ -67,6 +75,11 @@ Resources:
       SecurityGroupIds: !Ref SecurityGroups
       KeyName: !Ref KeyName
       ImageId: !Ref LatestAmiId
+      IamInstanceProfile:
+        !If
+          - AssociateRole
+          - !Ref InstanceRole
+          - !Ref 'AWS::NoValue'
       Tags:
         !If
           - IsWebServer
@@ -82,6 +95,39 @@ Resources:
     CreationPolicy:
       ResourceSignal:
         Timeout: PT5M
+  InstanceRole:
+    Condition: AssociateRole
+    Type: 'AWS::IAM::Role'
+    Properties:
+      Description: !Sub '${AWS::StackName} ec2 instance role'
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Policies:
+        - PolicyName: instance-role-inline
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Resource: "*"
+                Action:
+                  - "s3:*"
+                  - "cloudformation:*"
+                  - "ec2:*"
+  InstanceProfile:
+    Condition: AssociateRole
+    DependsOn: InstanceRole
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      InstanceProfileName: !Ref InstanceRole
+      Roles:
+        - !Ref InstanceRole
 Outputs:
   InstanceId:
     Description: InstanceId of the stack EC2 instance

@@ -144,7 +144,7 @@ Resources:
         KeyName: ap-southeast-2_playground
       Tags:
         - Key: Name
-          Value: !Sub '${NamePrefix}-bastion'
+          Value: !Sub '${NamePrefix}-general'
   FlowLogRole:
     Type: 'AWS::IAM::Role'
     Properties:
