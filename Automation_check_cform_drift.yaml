@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  A automation stack to automatically initiate drift detection on all cloudformation
+  stacks and also check if any cloudformation stack is drifted and set cloudwatch
+  alarms to alarm state.
+Resources:
+  LambdaStack:
+    Type: 'AWS::CloudFormation::Stack'
+    Properties:
+      TemplateURL: 'https://kazhala-cloudformation-storage.s3-ap-southeast-2.amazonaws.com/LAMBDA_general.yaml'
+      TimeoutInMinutes: '5'
+      Parameters:
+        LambdaRoleName: !Sub '${AWS::StackName}-lambda-role'
+        S3Bucket: kazhala-lambda-storage
+        S3Key: DetectCloudformationDrift.zip
+        S3ObjectVersion: ''
+        FunctionDescription: 'Search through specified regions and init drift detection on cloudformation stacks and also print current drift status'
+        MemorySize: 128
+        Runtime: python3.8
+        Timeout: 60
+        LambdaHandler: 'DetectCloudformationDrift.lambda_handler'
+  LambdaRolePolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: !Sub '${AWS::StackName}-check-drift'
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'cloudformation:DescribeStacks'
+              - 'cloudformation:DetectStackDrift'
+            Resource: '*'
+      Roles:
+        - Fn::GetAtt: [LambdaStack, Outputs.IAMRoleArn]
+  CloudWatchTrigger:
+    Type: 'AWS::Events::Rule'
+    Properties:
+      Description: 'Trigger every day at 8:00am Sydney time to check drift status'
+      ScheduleExpression: 'cron(0 21 ? * * *)'
+      State: 'ENABLED'
+      Targets:
+        - Arn:
+            Fn::GetAtt: [LambdaStack, Outputs.LambdaArn]
+          Id:
+            Fn::GetAtt: [LambdaStack, Outputs.LambdaName]
+  PermissionForEventsToInvokeLambda:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      FunctionName:
+        Fn::GetAtt: [LambdaStack, Outputs.LambdaArn]
+      Action: "lambda:InvokeFunction"
+      Principal: 'events.amazonaws.com'
+      SourceArn: !GetAtt CloudWatchTrigger.Arn
+  CloudWatchLogGroup:
+    Type: 'AWS::Logs::LogGroup'
+    Properties:
+      LogGroupName:
+        !Join
+          - '/'
+          - - '/aws/lambda'
+            - Fn::GetAtt: [LambdaStack, Outputs.LambdaName]
+      RetentionInDays: '3'
