@@ -21,6 +21,9 @@ Parameters:
   S3ObjectVersion:
     Type: String
     Description: 'The version of the s3 object, skip this if no version'
+  LambdaHandler:
+    Type: String
+    Default: 'index.lambda_handler'
   FunctionDescription:
     Type: String
     Description: 'The description that should be displayed on the lambda console'
@@ -74,6 +77,7 @@ Resources:
       Role: !GetAtt LambdaExecutionRole.Arn
       Runtime: !Ref Runtime
       Timeout: !Ref Timeout
+      Handler: !Ref LambdaHandler
 Outputs:
   IAMRoleArn:
     Description: The role arn of the lambda role
