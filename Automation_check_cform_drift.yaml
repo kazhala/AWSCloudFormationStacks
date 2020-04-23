@@ -27,9 +27,7 @@ Resources:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Action:
-              - 'cloudformation:DescribeStacks'
-              - 'cloudformation:DetectStackDrift'
+            Action: '*'
             Resource: '*'
       Roles:
         - Fn::GetAtt: [LambdaStack, Outputs.IAMRoleArn]
@@ -80,7 +78,7 @@ Resources:
       EvaluationPeriods: 1
       MetricName: 'drift'
       Namespace: 'Cloudformation'
-      Period: 43200
+      Period: 60
       Statistic: Sum
       Threshold: 1
       TreatMissingData: ignore
