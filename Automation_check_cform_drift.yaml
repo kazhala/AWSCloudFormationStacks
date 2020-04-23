@@ -60,4 +60,27 @@ Resources:
           - '/'
           - - '/aws/lambda'
             - Fn::GetAtt: [LambdaStack, Outputs.LambdaName]
-      RetentionInDays: '3'
+  CloudWatchMetric:
+    Type: 'AWS::Logs::MetricFilter'
+    Properties:
+      FilterPattern: "DRIFTED"
+      LogGroupName: !Ref CloudWatchLogGroup
+      MetricTransformations:
+        - MetricName: 'drift'
+          MetricNamespace: 'Cloudformation'
+          MetricValue: 1
+          DefaultValue: 0
+  CloudWatchAlarms:
+    Type: 'AWS::CloudWatch::Alarm'
+    DependsOn: CloudWatchMetric
+    Properties:
+      AlarmDescription: 'Drift status of cloudformation stacks'
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      DatapointsToAlarm: 1
+      EvaluationPeriods: 1
+      MetricName: 'drift'
+      Namespace: 'Cloudformation'
+      Period: 43200
+      Statistic: Sum
+      Threshold: 1
+      TreatMissingData: ignore
