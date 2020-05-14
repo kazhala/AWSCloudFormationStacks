@@ -1,0 +1,37 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  CodeBuild template for dotbare, webhook trigger from Github only on Master push
+Resources:
+  CodeBuild:
+    Type: 'AWS::CodeBuild::Project'
+    Properties:
+      Artifacts:
+        Type: NO_ARTIFACTS
+      BadgeEnabled: true
+      Description: CodeBuild project for dotbare
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:2.0
+        PrivilegedMode: true
+        Type: LINUX_CONTAINER
+      Name: testing
+      ServiceRole: # TODO
+      Source:
+        Auth:
+          Type: OAUTH
+        Location: https://github.com/kazhala/dotbare.git
+        ReportBuildStatus: true
+        Type: GITHUB
+      SourceVersion: master
+      Tags:
+        - Key: 'Name'
+          Value: 'dotbare'
+      Triggers:
+        FilterGroups:
+          - - Type: HEAD_REF
+              Pattern: ^refs/heads/master$
+            - Type: EVENT
+              Pattern: PUSH
+            - Type: EVENT
+              Pattern: PULL_REQUEST_MERGED
+        Webhook: true
