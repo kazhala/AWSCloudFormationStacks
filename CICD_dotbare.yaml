@@ -15,16 +15,13 @@ Resources:
         Image: aws/codebuild/standard:2.0
         PrivilegedMode: true
         Type: LINUX_CONTAINER
-      Name: testing
+      Name: dotbare
       ServiceRole: !GetAtt ServiceRole.Arn
       Source:
         Location: https://github.com/kazhala/dotbare.git
         ReportBuildStatus: true
         Type: GITHUB
       SourceVersion: master
-      Tags:
-        - Key: 'Name'
-          Value: 'dotbare'
       Triggers:
         FilterGroups:
           - - Type: HEAD_REF
@@ -44,9 +41,7 @@ Resources:
               Service: 'codebuild.amazonaws.com'
             Action: 'sts:AssumeRole'
       Description: !Sub 'CodeBuild role for ${AWS::StackName}'
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AWSCodeBuildDeveloperAccess
-      RoleName: !Sub '${AWS::StackName}-dotbare-codebuild'
+      RoleName: !Sub '${AWS::StackName}-codebuild'
 
   ParameterStorePolicy:
     Type: 'AWS::IAM::Policy'
@@ -63,5 +58,13 @@ Resources:
             Action:
               - 'kms:Decrypt'
             Resource: 'arn:aws:kms:ap-southeast-2:378756445655:key/51311dc6-8e2d-4139-abdc-5a81261eaa40'
+          - Effect: Allow
+            Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource:
+              - 'arn:aws:logs:ap-southeast-2:378756445655:log-group:/aws/codebuild/dotbare'
+              - 'arn:aws:logs:ap-southeast-2:378756445655:log-group:/aws/codebuild/dotbare:*'
       Roles:
         - !Ref ServiceRole
