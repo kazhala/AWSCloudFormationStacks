@@ -1,6 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
   CodeBuild template for dotbare, webhook trigger from Github only on Master push
+
 Resources:
   CodeBuild:
     Type: 'AWS::CodeBuild::Project'
@@ -15,10 +16,8 @@ Resources:
         PrivilegedMode: true
         Type: LINUX_CONTAINER
       Name: testing
-      ServiceRole: # TODO
+      ServiceRole: !GetAtt ServiceRole.Arn
       Source:
-        Auth:
-          Type: OAUTH
         Location: https://github.com/kazhala/dotbare.git
         ReportBuildStatus: true
         Type: GITHUB
@@ -31,7 +30,38 @@ Resources:
           - - Type: HEAD_REF
               Pattern: ^refs/heads/master$
             - Type: EVENT
-              Pattern: PUSH
-            - Type: EVENT
-              Pattern: PULL_REQUEST_MERGED
+              Pattern: PUSH,PULL_REQUEST_MERGED
         Webhook: true
+
+  ServiceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: 'codebuild.amazonaws.com'
+            Action: 'sts:AssumeRole'
+      Description: !Sub 'CodeBuild role for ${AWS::StackName}'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCodeBuildDeveloperAccess
+      RoleName: !Sub '${AWS::StackName}-dotbare-codebuild'
+
+  ParameterStorePolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: !Sub '${AWS::StackName}-codebuild-ssm-access'
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'ssm:GetParameters'
+            Resource: 'arn:aws:ssm:region:account-id:parameter/dotbare/*'
+          - Effect: Allow
+            Action:
+              - 'kms:Decrypt'
+            Resource: 'arn:aws:kms:ap-southeast-2:378756445655:key/51311dc6-8e2d-4139-abdc-5a81261eaa40'
+      Roles:
+        - !Ref ServiceRole
