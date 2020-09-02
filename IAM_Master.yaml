@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Setup an IAM admin role for master account to role switch.
+
+Parameters:
+  MasterAccountNumber:
+    Type: Number
+    Description: >-
+      The account number of the master account, used to grant trust.
+  RoleName:
+    Type: String
+    Description: >-
+      Name of the role to perform role switch.
+    Default: MasterAccess
+
+Resources:
+  MasterAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub
+                - 'arn:aws:iam::${AccountNumber}:root'
+                - AccountNumber: !Ref MasterAccountNumber
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AdministratorAccess'
+      Description: >-
+        Role switch admin role for master account in organisation.
+      RoleName: !Ref RoleName
