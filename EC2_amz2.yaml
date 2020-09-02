@@ -71,23 +71,21 @@ Resources:
       SecurityGroupIds: !Ref SecurityGroups
       KeyName: !Ref KeyName
       ImageId: !Ref LatestAmiId
-      IamInstanceProfile:
-        !If
-          - AssociateRole
-          - !Ref InstanceRole
-          - !Ref 'AWS::NoValue'
-      Tags:
-        !If
-          - IsWebServer
-          - - Key: 'WebServer'
-              Value: 'Yes'
-          - - !Ref 'AWS::NoValue'
+      IamInstanceProfile: !If
+        - AssociateRole
+        - !Ref InstanceRole
+        - !Ref 'AWS::NoValue'
+      Tags: !If
+        - IsWebServer
+        - - Key: 'WebServer'
+            Value: 'Yes'
+        - - !Ref 'AWS::NoValue'
       UserData:
         'Fn::Base64': !Sub |
-            #!/bin/bash -ex
-             yum update -y
-            /opt/aws/bin/cfn-init -v -s ${AWS::StackName} -c InstallAndCustomize -r EC2Instance --region ${AWS::Region}
-            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2Instance --region ${AWS::Region}
+          #!/bin/bash -ex
+           yum update -y
+          /opt/aws/bin/cfn-init -v -s ${AWS::StackName} -c InstallAndCustomize -r EC2Instance --region ${AWS::Region}
+          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2Instance --region ${AWS::Region}
     CreationPolicy:
       ResourceSignal:
         Timeout: PT5M
