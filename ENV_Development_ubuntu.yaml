@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Creates a ubuntu EC2 instance as development envrionment for Kevin with automation to auto stop/start the instance.
+
+Parameters:
+  EC2KeyPair:
+    Type: AWS::EC2::KeyPair::KeyName
+  EC2AMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id
+  InstanceType:
+    Type: String
+    AllowedValues:
+      - t3.large
+      - t3.xlarge
+    Default: t3.xlarge
+  OfficeIPCIDR:
+    Type: String
+  HomeIPCIDR:
+    Type: String
+  VPCID:
+    Type: AWS::EC2::VPC::Id
+  EC2VolumeSize:
+    Type: String
+    Default: 50
+  InstancePassword:
+    Type: String
+    NoEcho: true
+
+Resources:
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: SecurityGroup for Kevin's development instance.
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          CidrIp: !Ref OfficeIPCIDR
+          FromPort: 22
+          ToPort: 22
+      VpcId: !Ref VPCID
+
+  SecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      CidrIp: !Ref HomeIPCIDR
+      FromPort: 22
+      ToPort: 22
+      SourceSecurityGroupId: !GetAtt SecurityGroup.GroupId
+
+  UbuntuEC2:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          commands:
+            run_init_script:
+              command: |
+                zsh <(curl -fsSL https://raw.githubusercontent.com/kazhala/scripts/master/install/ubuntu_init.sh)
+
+    Properties:
+      ImageId: !Ref EC2AMI
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref EC2KeyPair
+      SecurityGroupIds:
+        - !GetAtt SecurityGroup.GroupId
+      BlockDeviceMappings:
+        - DeviceName: /dev/sda1
+          Ebs:
+            DeleteOnTermination: true
+            Encrypted: true
+            VolumeSize: !Ref EC2VolumeSize
+      UserData:
+        Fn::Base64: !Sub |
+        #!/bin/bash -ex
+        sudo apt-get update -y
+        sudo apt-get install -y zsh
+        sudo apt-get install -y python
+        sudo apt-get install -y python-setuptools
+        sudo mkdir -p /opt/aws/bin
+        wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+        sudo python -m easy_install --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz
+        zsh <(curl -fsSL https://raw.githubusercontent.com/kazhala/scripts/master/install/ubuntu_init.sh)
+        /opt/aws/bin/cfn-init -v -s ${AWS::StackName} -r UbuntuEC2 --region ${AWS::Region}
+        /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource UbuntuEC2 --region ${AWS::Region}
+        sudo echo ubuntu:${InstancePassword} | sudo chpasswd
+
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT15M
