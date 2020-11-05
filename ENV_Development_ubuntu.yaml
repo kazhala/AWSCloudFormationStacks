@@ -50,17 +50,6 @@ Resources:
 
   UbuntuEC2:
     Type: AWS::EC2::Instance
-    Metadata:
-      AWS::CloudFormation::Init:
-        config:
-          commands:
-            run_init_script:
-              command: zsh <(curl -fsSL https://raw.githubusercontent.com/kazhala/scripts/master/install/ubuntu_init.sh)
-            set_password:
-              command: sudo echo ubunt:${InstancePassword} | sudo chpasswd
-              env:
-                InstancePassword: !Ref InstancePassword
-
     Properties:
       ImageId: !Ref EC2AMI
       InstanceType: !Ref InstanceType
@@ -83,9 +72,10 @@ Resources:
           sudo mkdir -p /opt/aws/bin
           wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
           sudo python -m easy_install --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz
-          /opt/aws/bin/cfn-init -v -s ${AWS::StackName} -r UbuntuEC2 --region ${AWS::Region}
-          /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource UbuntuEC2 --region ${AWS::Region}
-
+          export HOME=/home/ubuntu
+          zsh <(curl -fsSL https://raw.githubusercontent.com/kazhala/scripts/master/install/ubuntu_init.sh)
+          sudo /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource UbuntuEC2 --region ${AWS::Region}
+          sudo echo ubuntu:${InstancePassword} | sudo chpasswd
     CreationPolicy:
       ResourceSignal:
-        Timeout: PT15M
+        Timeout: PT20M
