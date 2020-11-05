@@ -31,7 +31,7 @@ Resources:
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: SecurityGroup for Kevin's development instance.
+      GroupDescription: SecurityGroup for Kevin development instance.
       SecurityGroupIngress:
         - IpProtocol: tcp
           CidrIp: !Ref OfficeIPCIDR
@@ -46,7 +46,7 @@ Resources:
       CidrIp: !Ref HomeIPCIDR
       FromPort: 22
       ToPort: 22
-      SourceSecurityGroupId: !GetAtt SecurityGroup.GroupId
+      GroupId: !GetAtt SecurityGroup.GroupId
 
   UbuntuEC2:
     Type: AWS::EC2::Instance
@@ -55,8 +55,11 @@ Resources:
         config:
           commands:
             run_init_script:
-              command: |
-                zsh <(curl -fsSL https://raw.githubusercontent.com/kazhala/scripts/master/install/ubuntu_init.sh)
+              command: zsh <(curl -fsSL https://raw.githubusercontent.com/kazhala/scripts/master/install/ubuntu_init.sh)
+            set_password:
+              command: sudo echo ubunt:${InstancePassword} | sudo chpasswd
+              env:
+                InstancePassword: !Ref InstancePassword
 
     Properties:
       ImageId: !Ref EC2AMI
@@ -80,10 +83,8 @@ Resources:
           sudo mkdir -p /opt/aws/bin
           wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
           sudo python -m easy_install --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz
-          zsh <(curl -fsSL https://raw.githubusercontent.com/kazhala/scripts/master/install/ubuntu_init.sh)
           /opt/aws/bin/cfn-init -v -s ${AWS::StackName} -r UbuntuEC2 --region ${AWS::Region}
           /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource UbuntuEC2 --region ${AWS::Region}
-          sudo echo ubuntu:${InstancePassword} | sudo chpasswd
 
     CreationPolicy:
       ResourceSignal:
