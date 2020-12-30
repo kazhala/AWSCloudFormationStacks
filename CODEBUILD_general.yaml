@@ -1,0 +1,191 @@
+WSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Create a simple codebuild project for python and related notifications using sns.
+  Main usecase would be being part of the pipeline for a github project. No Artifacts
+  settings.
+
+Parameters:
+  ComputeType:
+    Type: String
+    AllowedValues:
+      - BUILD_GENERAL1_SMALL
+      - BUILD_GENERAL1_MEDIUM
+      - BUILD_GENERAL1_LARGE
+    Default: BUILD_GENERAL1_SMALL
+  ComputeImage:
+    Type: String
+    AllowedValues:
+      - aws/codebuild/amazonlinux2-x86_64-standard:3.0
+      - aws/codebuild/amazonlinux2-x86_64-standard:2.0
+      - aws/codebuild/amazonlinux2-aarch64-standard:1.0
+      - aws/codebuild/standard:4.0
+      - aws/codebuild/standard:3.0
+    Default: aws/codebuild/amazonlinux2-x86_64-standard:3.0
+  ProjectName:
+    Type: String
+    Description: The github repository name of the project
+  ProjectDescription:
+    Type: String
+  Docker:
+    Type: String
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+  TriggerCommitPattern:
+    Type: String
+    Default: '^.*v[0-9]+\.[0-9]+\.[0-9]+.*$'
+  TriggerCommitFile:
+    Type: String
+    Default: setup.py
+  KMSKeyArn:
+    Type: String
+  NotificationEmail:
+    Type: String
+    Default: kevin7441@gmail.com
+
+Conditions:
+  Con_Root: !Equals [!Ref Docker, 'true']
+  Con_CommitPattern: !Not [!Equals [!Ref TriggerCommitPattern, '']]
+  Con_CommitFile: !Not [!Equals [!Ref TriggerCommitFile, '']]
+  Con_KMSPermission: !Not [!Equals [!Ref KMSKeyArn, '']]
+
+Resources:
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: NO_ARTIFACTS
+      BadgeEnabled: true
+      Description: !Ref ProjectDescription
+      Environment:
+        ComputeType: !Ref ComputeType
+        Image: !Ref ComputeImage
+        PrivilegedMode: !If
+          - Con_Root
+          - true
+          - false
+        Type: LINUX_CONTAINER
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+      Name: !Ref ProjectName
+      ServiceRole: !Ref CodeBuildRole
+      Source:
+        Location: !Sub 'https://github.com/kazhala/${ProjectName}.git'
+        Type: GITHUB
+        ReportBuildStatus: true
+      SourceVersion: master
+      Triggers:
+        Webhook: true
+        FilterGroups:
+          - - Type: EVENT
+              Pattern: PUSH
+            - Type: HEAD_REF
+              Pattern: ^refs/heads/master$
+            - !If
+              - Con_CommitPattern
+              - Type: FILE_PATH
+                Pattern: !Ref TriggerCommitFile
+              - !Ref AWS::NoValue
+            - !If
+              - Con_CommitFile
+              - Type: COMMIT_MESSAGE
+                Pattern: !Ref TriggerCommitPattern
+              - !Ref AWS::NoValue
+
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action: 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service: 'codebuild.amazonaws.com'
+      Description: !Sub 'CodeBuild role for ${ProjectName}'
+
+  CodeBuildRolePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub '${AWS::StackName}-codebuild-role-policy'
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'ssm:GetParameters'
+            Resource:
+              - !Sub 'arn:aws:ssm:ap-southeast-2:${AWS::AccountId}:parameter/*'
+          - !If
+            - Con_KMSPermission
+            - Effect: Allow
+              Action:
+                - 'kms:Decrypt'
+              Resource: !Ref KMSKeyArn
+            - !Ref AWS::NoValue
+          - Effect: Allow
+            Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource:
+              - 'arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/codebuild/${ProjectName}'
+              - 'arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/codebuild/${ProjectName}:*'
+      Roles:
+        - !Ref CodeBuildRole
+
+  CodeBuildSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${AWS::StackName}Notification'
+
+  CodeBuildSNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref CodeBuildSNSTopic
+      Protocol: email
+      Endpoint: !Ref NotificationEmail
+
+  CodeBuildStatusTrigger:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Report codebuild status to fzfaws sns topic
+      EventPattern:
+        source:
+          - 'aws.codebuild'
+        detail-type:
+          - 'CodeBuild Build State Change'
+        detail:
+          build-status:
+            - 'SUCCEEDED'
+            - 'FAILED'
+          project-name:
+            - !Ref CodeBuildProject
+      Name: !Sub '${AWS::StackName}-codebuild-trigger'
+      State: ENABLED
+      Targets:
+        - Arn: !Ref CodeBuildSNSTopic
+          Id: CodeBuildSNSTopic
+          InputTransformer:
+            InputPathsMap:
+              id: '$.detail.build-id'
+              name: '$.detail.project-name'
+              status: '$.detail.build-status'
+            InputTemplate: |
+              "Project '<name>' has reached the build status of '<status>' for build '<id>'."
+
+  CodeBuildSNSTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: 'sns:Publish'
+            Resource: !Ref CodeBuildSNSTopic
+      Topics:
+        - !Ref CodeBuildSNSTopic
