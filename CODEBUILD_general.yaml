@@ -1,4 +1,4 @@
-WSTemplateFormatVersion: 2010-09-09
+AWSTemplateFormatVersion: 2010-09-09
 Description: >-
   Create a simple codebuild project for python and related notifications using sns.
   Main usecase would be being part of the pipeline for a github project. No Artifacts
@@ -131,8 +131,8 @@ Resources:
               - 'logs:CreateLogStream'
               - 'logs:PutLogEvents'
             Resource:
-              - 'arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/codebuild/${ProjectName}'
-              - 'arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/codebuild/${ProjectName}:*'
+              - !Sub 'arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/codebuild/${ProjectName}'
+              - !Sub 'arn:aws:logs:ap-southeast-2:${AWS::AccountId}:log-group:/aws/codebuild/${ProjectName}:*'
       Roles:
         - !Ref CodeBuildRole
 
