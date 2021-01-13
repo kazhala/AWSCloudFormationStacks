@@ -1,0 +1,76 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Personal public assets hosting infrastructure.
+
+Parameters:
+  ACMCertsARN:
+    Type: String
+    Default: arn:aws:acm:us-east-1:378756445655:certificate/8bb2232d-301e-4a4e-b514-1a78e02b917b
+  HostedZoneId:
+    Type: String
+    Default: Z09127633R1AMFNJLE981
+
+Resources:
+  OAI:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: OAI for assets.kazhala.me bucket
+
+  AssetsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: assets.kazhala.me
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref AssetsBucket
+      PolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity ${OAI}'
+            Action: s3:GetObject
+            Resource: !Sub 'arn:aws:s3:::${AssetsBucket}/*'
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Aliases:
+          - !Ref AssetsBucket
+        Comment: CDN for kazhala public assets
+        DefaultCacheBehavior:
+          CachePolicyId: b2884449-e4de-46a7-ac36-70bc7f1ddd6d
+          TargetOriginId: !Sub '${AWS::StackName}-Origin'
+          ViewerProtocolPolicy: redirect-to-https
+        DefaultRootObject: index.html
+        HttpVersion: http2
+        Origins:
+          - DomainName: !GetAtt AssetsBucket.DomainName
+            Id: !Sub '${AWS::StackName}-Origin'
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${OAI}'
+        PriceClass: PriceClass_All
+        ViewerCertificate:
+          AcmCertificateArn: !Ref ACMCertsARN
+          MinimumProtocolVersion: TLSv1.2_2019
+          SslSupportMethod: sni-only
+
+  Route53Record:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+      Name: !Ref AssetsBucket
+      Comment: Public assets
+      HostedZoneId: !Ref HostedZoneId
+      Type: A
