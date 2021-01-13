@@ -2,9 +2,6 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: >-
   testing purposes only, will create a SG
 Parameters:
-  Hello:
-    Description: testing only
-    Type: 'AWS::EC2::VPC::Id'
   WebServer:
     Description: Is the security group used for web servers
     Type: String

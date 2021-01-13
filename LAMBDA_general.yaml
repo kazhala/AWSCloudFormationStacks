@@ -63,16 +63,21 @@ Resources:
       Description: !Sub 'Lambda basic execution role for ${AWS::StackName}'
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
-      RoleName: !If [HasRoleName, !Ref LambdaRoleName, !Sub '${AWS::StackName}-lambda-execution']
+      RoleName:
+        !If [
+          HasRoleName,
+          !Ref LambdaRoleName,
+          !Sub '${AWS::StackName}-lambda-execution',
+        ]
   LambdaFunction:
     Type: 'AWS::Lambda::Function'
     Properties:
       Code:
         S3Bucket: !Ref S3Bucket
         S3Key: !Ref S3Key
-        S3ObjectVersion: !If [HasVersion, !Ref S3ObjectVersion, !Ref 'AWS::NoValue']
+        S3ObjectVersion:
+          !If [HasVersion, !Ref S3ObjectVersion, !Ref 'AWS::NoValue']
       Description: !Ref FunctionDescription
-      Handler: index.lambda_handler
       MemorySize: !Ref MemorySize
       Role: !GetAtt LambdaExecutionRole.Arn
       Runtime: !Ref Runtime

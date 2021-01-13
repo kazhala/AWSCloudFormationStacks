@@ -8,7 +8,7 @@ Resources:
     Type: 'AWS::CloudFormation::Stack'
     Properties:
       TemplateURL: 'https://kazhala-cloudformation-storage.s3-ap-southeast-2.amazonaws.com/LAMBDA_general.yaml'
-      TimeoutInMinutes: '5'
+      TimeoutInMinutes: 5
       Parameters:
         LambdaRoleName: !Sub '${AWS::StackName}-lambda-role'
         S3Bucket: kazhala-lambda-storage
@@ -47,26 +47,25 @@ Resources:
     Properties:
       FunctionName:
         Fn::GetAtt: [LambdaStack, Outputs.LambdaArn]
-      Action: "lambda:InvokeFunction"
+      Action: 'lambda:InvokeFunction'
       Principal: 'events.amazonaws.com'
       SourceArn: !GetAtt CloudWatchTrigger.Arn
   CloudWatchLogGroup:
     Type: 'AWS::Logs::LogGroup'
     Properties:
-      LogGroupName:
-        !Join
-          - '/'
-          - - '/aws/lambda'
-            - Fn::GetAtt: [LambdaStack, Outputs.LambdaName]
+      LogGroupName: !Join
+        - '/'
+        - - '/aws/lambda'
+          - Fn::GetAtt: [LambdaStack, Outputs.LambdaName]
   CloudWatchMetric:
     Type: 'AWS::Logs::MetricFilter'
     Properties:
-      FilterPattern: "DRIFTED"
+      FilterPattern: 'DRIFTED'
       LogGroupName: !Ref CloudWatchLogGroup
       MetricTransformations:
         - MetricName: 'drift'
           MetricNamespace: 'Cloudformation'
-          MetricValue: 1
+          MetricValue: '1'
           DefaultValue: 0
   CloudWatchAlarms:
     Type: 'AWS::CloudWatch::Alarm'

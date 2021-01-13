@@ -35,8 +35,8 @@ Resources:
     Type: 'AWS::EC2::VPC'
     Properties:
       CidrBlock: !Ref VPCIPCidr
-      EnableDnsHostnames: 'true'
-      EnableDnsSupport: 'true'
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
       Tags:
         - Key: Name
           Value: !Ref NamePrefix
@@ -50,7 +50,7 @@ Resources:
         - 0
         - !Ref SubnetCidr
       VpcId: !Ref CustomVPC
-      MapPublicIpOnLaunch: 'true'
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value: !Sub '${NamePrefix}-PublicA'
@@ -64,7 +64,7 @@ Resources:
         - 1
         - !Ref SubnetCidr
       VpcId: !Ref CustomVPC
-      MapPublicIpOnLaunch: 'true'
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value: !Sub '${NamePrefix}-PublicB'
@@ -78,7 +78,7 @@ Resources:
         - 2
         - !Ref SubnetCidr
       VpcId: !Ref CustomVPC
-      MapPublicIpOnLaunch: 'true'
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
           Value: !Sub '${NamePrefix}-PublicC'
@@ -126,7 +126,7 @@ Resources:
     Type: 'AWS::CloudFormation::Stack'
     Properties:
       TemplateURL: 'https://kazhala-cloudformation-storage.s3-ap-southeast-2.amazonaws.com/SG_default.yaml'
-      TimeoutInMinutes: '5'
+      TimeoutInMinutes: 5
       Parameters:
         VpcId: !Ref CustomVPC
         TurrmurraSSH: !Ref TurrmurraSSH
@@ -137,7 +137,7 @@ Resources:
     Type: 'AWS::CloudFormation::Stack'
     Properties:
       TemplateURL: 'https://kazhala-cloudformation-storage.s3-ap-southeast-2.amazonaws.com/EC2_amz2.yaml'
-      TimeoutInMinutes: '10'
+      TimeoutInMinutes: 10
       Parameters:
         InstanceRole: !Ref InstanceRole
         SubnetId: !Ref PublicSubnetB
@@ -165,13 +165,12 @@ Resources:
             Version: 2012-10-17
             Statement:
               - Effect: Allow
-                Resource: "*"
+                Resource: '*'
                 Action:
-                  - "s3:*"
-                  - "cloudformation:*"
-                  - "ec2:*"
+                  - 's3:*'
+                  - 'cloudformation:*'
+                  - 'ec2:*'
   InstanceProfile:
-    DependsOn: InstanceRole
     Type: 'AWS::IAM::InstanceProfile'
     Properties:
       InstanceProfileName: !Ref InstanceRole
@@ -196,21 +195,18 @@ Resources:
             Version: 2012-10-17
             Statement:
               - Effect: Allow
-                Resource: "*"
+                Resource: '*'
                 Action:
-                  - "logs:CreateLogGroup"
-                  - "logs:CreateLogStream"
-                  - "logs:DescribeLogGroups"
-                  - "logs:DescribeLogStreams"
-                  - "logs:PutLogEvents"
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:DescribeLogGroups'
+                  - 'logs:DescribeLogStreams'
+                  - 'logs:PutLogEvents'
       Tags:
         - Key: Name
           Value: !Sub '${NamePrefix}-vpc-flow-log'
   VPCFlowLog:
     Type: 'AWS::EC2::FlowLog'
-    DependsOn:
-      - CustomVPC
-      - FlowLogRole
     Properties:
       DeliverLogsPermissionArn: !GetAtt FlowLogRole.Arn
       LogDestinationType: 'cloud-watch-logs'

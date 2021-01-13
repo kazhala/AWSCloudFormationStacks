@@ -100,7 +100,7 @@ Resources:
           Value: !Ref SSLCertificateArn
         - Namespace: aws:elb:listener:443
           OptionName: InstancePort
-          Value: 80
+          Value: '80'
         - Namespace: aws:elasticbeanstalk:container:nodejs
           OptionName: NodeCommand
           Value: 'npm start'
@@ -145,14 +145,12 @@ Resources:
   Route53CloudfrontRecord:
     Type: 'AWS::Route53::RecordSet'
     Properties:
-      Name: 
-        !If
+      Name: !If
         - HasFrontend
         - !Join
-            - '.'
-            - - 'api'
-              - Fn::ImportValue:
-                  !Sub '${FrontendStack}-BucketName'
+          - '.'
+          - - 'api'
+            - Fn::ImportValue: !Sub '${FrontendStack}-BucketName'
         - !Ref BackendUrl
       AliasTarget:
         HostedZoneId: 'Z2PCDNR3VC2G1N'

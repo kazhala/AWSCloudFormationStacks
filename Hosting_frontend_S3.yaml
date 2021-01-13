@@ -36,8 +36,7 @@ Resources:
       Bucket: !Ref FrontendBucket
       PolicyDocument:
         Statement:
-          - 
-            Action:
+          - Action:
               - 's3:GetObject'
             Effect: 'Allow'
             Resource: !Sub 'arn:aws:s3:::${BucketName}/*'
@@ -47,25 +46,24 @@ Resources:
     Type: 'AWS::CloudFront::CloudFrontOriginAccessIdentity'
     Properties:
       CloudFrontOriginAccessIdentityConfig:
-        Comment: !Sub 'access-identity-${AWS::StackName}' 
+        Comment: !Sub 'access-identity-${AWS::StackName}'
   CloudfrontDistribution:
     Type: 'AWS::CloudFront::Distribution'
     Properties:
       DistributionConfig:
         Origins:
-          - 
-            DomainName: !GetAtt FrontendBucket.DomainName
+          - DomainName: !GetAtt FrontendBucket.DomainName
             Id: !Sub '${AWS::StackName}Origin'
             S3OriginConfig:
-              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudfrontAccessIdentity}' 
-        Enabled: 'true'
+              OriginAccessIdentity: !Sub 'origin-access-identity/cloudfront/${CloudfrontAccessIdentity}'
+        Enabled: true
         Comment: !Sub 'cloudfront-distribution-${AWS::StackName}'
         DefaultRootObject: index.html
         DefaultCacheBehavior:
           ViewerProtocolPolicy: 'redirect-to-https'
           TargetOriginId: !Sub ${AWS::StackName}Origin
-          ForwardedValues: 
-            QueryString: 'false'
+          ForwardedValues:
+            QueryString: false
             Cookies:
               Forward: none
         Aliases:
@@ -75,7 +73,7 @@ Resources:
           AcmCertificateArn: !Ref AcmCertificateArn
           MinimumProtocolVersion: TLSv1.2_2018
           SslSupportMethod: sni-only
-        IPV6Enabled: 'true'
+        IPV6Enabled: true
         CustomErrorResponses:
           - ErrorCode: 403
             ErrorCachingMinTTL: 0

@@ -36,60 +36,58 @@ Resources:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupDescription: Security group for controlling access to FLEX_EC2 instances
-      SecurityGroupIngress:
-        !If
-          - RemoteLocation
-          - - IpProtocol: tcp
-              FromPort: '22'
-              ToPort: '22'
-              CidrIp: !Ref TurrmurraSSH
-            - IpProtocol: tcp
-              FromPort: '22'
-              ToPort: '22'
-              CidrIp: !Ref EppingSSH
-            - IpProtocol: tcp
-              FromPort: '22'
-              ToPort: '22'
-              CidrIp: !Ref RemoteSSH
-          - - IpProtocol: tcp
-              FromPort: '22'
-              ToPort: '22'
-              CidrIp: !Ref TurrmurraSSH
-            - IpProtocol: tcp
-              FromPort: '22'
-              ToPort: '22'
-              CidrIp: !Ref EppingSSH
+      SecurityGroupIngress: !If
+        - RemoteLocation
+        - - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: !Ref TurrmurraSSH
+          - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: !Ref EppingSSH
+          - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: !Ref RemoteSSH
+        - - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: !Ref TurrmurraSSH
+          - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: !Ref EppingSSH
       VpcId: !If [NonDefaultVPC, !Ref VpcId, !Ref 'AWS::NoValue']
       GroupName: !If [NonDefaultVPC, !Sub '${NamePrefix}-ssh', 'default-ssh']
       Tags:
         - Key: Name
-          Value:
-            !If
-              - NonDefaultVPC
-              - !Sub '${NamePrefix}-ssh'
-              - 'default-ssh'
+          Value: !If
+            - NonDefaultVPC
+            - !Sub '${NamePrefix}-ssh'
+            - 'default-ssh'
   DefaultWebServerSG:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupDescription: SG to attach to a webserver
       SecurityGroupIngress:
         - IpProtocol: tcp
-          FromPort: '80'
-          ToPort: '80'
+          FromPort: 80
+          ToPort: 80
           CidrIp: 0.0.0.0/0
         - IpProtocol: tcp
-          FromPort: '443'
-          ToPort: '443'
+          FromPort: 443
+          ToPort: 443
           CidrIp: 0.0.0.0/0
       VpcId: !If [NonDefaultVPC, !Ref VpcId, !Ref 'AWS::NoValue']
-      GroupName: !If [NonDefaultVPC, !Sub '${NamePrefix}-webserver', 'default-webserver']
+      GroupName:
+        !If [NonDefaultVPC, !Sub '${NamePrefix}-webserver', 'default-webserver']
       Tags:
         - Key: Name
-          Value:
-            !If
-              - NonDefaultVPC
-              - !Sub '${NamePrefix}-webserver'
-              - 'default-webserver'
+          Value: !If
+            - NonDefaultVPC
+            - !Sub '${NamePrefix}-webserver'
+            - 'default-webserver'
 Outputs:
   DefaultSSHSG:
     Description: The default ssh security group id for EC2 import reference

@@ -7,7 +7,7 @@ Resources:
     Type: 'AWS::CloudFormation::Stack'
     Properties:
       TemplateURL: 'https://kazhala-cloudformation-storage.s3-ap-southeast-2.amazonaws.com/LAMBDA_general.yaml'
-      TimeoutInMinutes: '5'
+      TimeoutInMinutes: 5
       Parameters:
         LambdaRoleName: !Sub '${AWS::StackName}-lambda-role'
         S3Bucket: kazhala-lambda-storage
@@ -25,7 +25,7 @@ Resources:
         Version: 2012-10-17
         Statement:
           - Effect: Allow
-            Action: 
+            Action:
               - 'ec2:DescribeInstances'
               - 'ec2:StopInstances'
               - 'ec2:DescribeRegions'
@@ -40,15 +40,15 @@ Resources:
       ScheduleExpression: 'cron(0 12 ? * * *)'
       State: 'ENABLED'
       Targets:
-        - Arn: 
+        - Arn:
             Fn::GetAtt: [LambdaStack, Outputs.LambdaArn]
-          Id: 
+          Id:
             Fn::GetAtt: [LambdaStack, Outputs.LambdaName]
-  PermissionForEventsToInvokeLambda: 
+  PermissionForEventsToInvokeLambda:
     Type: 'AWS::Lambda::Permission'
-    Properties: 
-      FunctionName: 
+    Properties:
+      FunctionName:
         Fn::GetAtt: [LambdaStack, Outputs.LambdaArn]
-      Action: "lambda:InvokeFunction"
-      Principal: "events.amazonaws.com"
+      Action: 'lambda:InvokeFunction'
+      Principal: 'events.amazonaws.com'
       SourceArn: !GetAtt CloudWatchTrigger.Arn
