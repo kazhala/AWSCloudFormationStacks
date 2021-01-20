@@ -23,6 +23,9 @@ Parameters:
   InstancePassword:
     Type: String
     NoEcho: true
+  RepeatPassword:
+    Type: String
+    NoEcho: true
   TimeZone:
     Type: String
     AllowedValues:
@@ -39,6 +42,34 @@ Mappings:
       AEST: 'cron(0 21 ? * SUN-THU *)'
 
 Resources:
+  PasswordVerificationFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        ZipFile: |
+          import cfnresponse
+
+          def lambda_handler(event, context):
+              if event["RequestType"] == "Delete":
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+              else:
+                  password1 = event["ResourceProperties"]["InstancePassword"]
+                  password2 = event["ResourceProperties"]["RepeatPassword"]
+                  if password1 != password2:
+                      cfnresponse.send(event, context, cfnresponse.FAILED, {}, reason="RepeatPassword does not match InstancePassword")
+                  else:
+                      cfnresponse.send(event, context, cfnresponse.SUCCESS, {})
+      Handler: index.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: python3.8
+
+  VerifyPassword:
+    Type: Custom::VerifyPassword
+    Properties:
+      ServiceToken: !GetAtt PasswordVerificationFunction.Arn
+      InstancePassword: !Ref InstancePassword
+      RepeatPassword: !Ref RepeatPassword
+
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -60,6 +91,7 @@ Resources:
 
   UbuntuEC2:
     Type: AWS::EC2::Instance
+    DependsOn: VerifyPassword
     Properties:
       ImageId: !Ref EC2AMI
       InstanceType: !Ref InstanceType
