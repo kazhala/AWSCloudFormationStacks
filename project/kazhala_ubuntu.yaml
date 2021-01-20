@@ -24,6 +24,20 @@ Parameters:
   InstancePassword:
     Type: String
     NoEcho: true
+  TimeZone:
+    Type: String
+    AllowedValues:
+      - AEDT
+      - AEST
+
+Mappings:
+  CronExpression:
+    Stop:
+      AEDT: 'cron(0 8 ? * MON-FRI *)'
+      AEST: 'cron(0 9 ? * MON-FRI *)'
+    Start:
+      AEDT: 'cron(0 20 ? * SUN-THU *)'
+      AEST: 'cron(0 21 ? * SUN-THU *)'
 
 Resources:
   SecurityGroup:
@@ -73,6 +87,9 @@ Resources:
           sudo /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource UbuntuEC2 --region ${AWS::Region}
           sudo echo ubuntu:${InstancePassword} | sudo chpasswd
           rm aws-cfn-bootstrap-latest.tar.gz
+      Tags:
+        - Key: Name
+          Value: Kevin-Server
 
     CreationPolicy:
       ResourceSignal:
@@ -138,3 +155,45 @@ Resources:
       Environment:
         Variables:
           INSTANCE_TO_STOP: !Ref UbuntuEC2
+
+  CloudWatchStopEvent:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: !Sub 'Scheduled event to stop ${UbuntuEC2}'
+      ScheduleExpression: !FindInMap
+        - CronExpression
+        - Stop
+        - !Ref TimeZone
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt LambdaStopEC2.Arn
+          Id: !Ref LambdaStopEC2
+
+  LambdaInvokePermmisionStop:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt LambdaStopEC2.Arn
+      Principal: 'events.amazonaws.com'
+      SourceArn: !GetAtt CloudWatchStopEvent.Arn
+
+  CloudWatchStartEvent:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: !Sub 'Scheduled event to start ${UbuntuEC2}'
+      ScheduleExpression: !FindInMap
+        - CronExpression
+        - Start
+        - !Ref TimeZone
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt LambdaStartEC2.Arn
+          Id: !Ref LambdaStartEC2
+
+  LambdaInvokePermmisionStart:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !GetAtt LambdaStartEC2.Arn
+      Principal: 'events.amazonaws.com'
+      SourceArn: !GetAtt CloudWatchStartEvent.Arn
