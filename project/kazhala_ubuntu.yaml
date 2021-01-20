@@ -123,7 +123,7 @@ Resources:
 
     CreationPolicy:
       ResourceSignal:
-        Timeout: PT20M
+        Timeout: PT30M
 
   LambdaExecutionRole:
     Type: AWS::IAM::Role
