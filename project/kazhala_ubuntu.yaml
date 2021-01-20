@@ -3,24 +3,23 @@ Description: >-
   Creates a ubuntu EC2 instance as development envrionment for Kevin with automation to auto stop/start the instance.
 
 Parameters:
-  EC2KeyPair:
-    Type: AWS::EC2::KeyPair::KeyName
   EC2AMI:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id
   InstanceType:
     Type: String
     AllowedValues:
+      - t3.medium
       - t3.large
       - t3.xlarge
-    Default: t3.xlarge
+    Default: t3.large
   OfficeIPCIDR:
     Type: String
   HomeIPCIDR:
     Type: String
   EC2VolumeSize:
     Type: String
-    Default: 50
+    Default: 20
   InstancePassword:
     Type: String
     NoEcho: true
@@ -64,7 +63,6 @@ Resources:
     Properties:
       ImageId: !Ref EC2AMI
       InstanceType: !Ref InstanceType
-      KeyName: !Ref EC2KeyPair
       SecurityGroupIds:
         - !GetAtt SecurityGroup.GroupId
       BlockDeviceMappings:
@@ -89,7 +87,7 @@ Resources:
           rm aws-cfn-bootstrap-latest.tar.gz
       Tags:
         - Key: Name
-          Value: Kevin-Server
+          Value: kevin-dev
 
     CreationPolicy:
       ResourceSignal:
