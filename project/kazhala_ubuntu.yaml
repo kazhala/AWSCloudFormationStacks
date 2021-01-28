@@ -31,6 +31,8 @@ Parameters:
     AllowedValues:
       - AEDT
       - AEST
+  NotificationEmail:
+    Type: String
 
 Mappings:
   CronExpression:
@@ -106,9 +108,9 @@ Resources:
       UserData:
         'Fn::Base64': !Sub |
           #!/bin/bash -ex
-          apt-get update -y
-          apt-get install -y python
-          apt-get install -y python-setuptools
+          apt update -y
+          apt install -y python
+          apt install -y python-setuptools
           mkdir -p /opt/aws/bin
           wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
           python -m easy_install --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz
@@ -124,6 +126,16 @@ Resources:
     CreationPolicy:
       ResourceSignal:
         Timeout: PT30M
+
+  DNSSNSTopic:
+    Type: AWS::SNS::Topic
+
+  DNSSNSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref DNSSNSTopic
+      Protocol: email
+      Endpoint: !Ref NotificationEmail
 
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -145,6 +157,8 @@ Resources:
                 Action:
                   - 'ec2:StartInstances'
                   - 'ec2:StopInstances'
+                  - 'ec2:DescribeInstances'
+                  - 'sns:Publish'
                 Resource: '*'
           PolicyName: StartStopEC2
 
@@ -156,16 +170,37 @@ Resources:
           import boto3
           import os
           client = boto3.client("ec2")
+          waiter = client.get_waiter('instance_running')
+          sns = boto3.client("sns")
+
+          def get_instance_name(tags):
+              name = None
+              for tag in tags:
+                  if tag["Key"] == "Name":
+                      name = tag["Value"]
+              return name
 
           def lambda_handler(event, context):
-            instance_list = os.getenv("INSTANCE_TO_START", "").split(",")
-            client.start_instances(InstanceIds=instance_list)
+              instance_list = os.getenv("INSTANCE_TO_START", "").split(",")
+              client.start_instances(InstanceIds=instance_list)
+              if os.getenv("TOPIC_ARN"):
+                  waiter.wait(InstanceIds=instance_list)
+                  instance_details = client.describe_instances(InstanceIds=instance_list)
+                  message = ""
+                  for instance in instance_details["Reservations"][0]["Instances"]:
+                      name = get_instance_name(instance["Tags"]) or instance["InstanceId"]
+                      message += "%s%s:\n" % ("\n" if message else "", name)
+                      message += "%s\n" % instance["PublicDnsName"]
+                  sns.publish(TopicArn=os.getenv("TOPIC_ARN"), Message=message, Subject="EC2 DNS")
+
       Handler: index.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Runtime: python3.8
+      Timeout: 60
       Environment:
         Variables:
           INSTANCE_TO_START: !Ref UbuntuEC2
+          TOPIC_ARN: !Ref DNSSNSTopic
 
   LambdaStopEC2:
     Type: AWS::Lambda::Function
@@ -177,11 +212,12 @@ Resources:
           client = boto3.client("ec2")
 
           def lambda_handler(event, context):
-            instance_list = os.getenv("INSTANCE_TO_STOP", "").split(",")
-            client.stop_instances(InstanceIds=instance_list)
+              instance_list = os.getenv("INSTANCE_TO_STOP", "").split(",")
+              client.stop_instances(InstanceIds=instance_list)
       Handler: index.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Runtime: python3.8
+      Timeout: 10
       Environment:
         Variables:
           INSTANCE_TO_STOP: !Ref UbuntuEC2
