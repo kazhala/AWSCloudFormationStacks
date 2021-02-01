@@ -93,6 +93,8 @@ Resources:
 
   UbuntuEC2:
     Type: AWS::EC2::Instance
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
     DependsOn: VerifyPassword
     Properties:
       IamInstanceProfile: !Ref InstanceProfile
