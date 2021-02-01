@@ -12,7 +12,7 @@ Parameters:
       - t3.medium
       - t3.large
       - t3.xlarge
-    Default: t3.large
+    Default: t3.medium
   OfficeIPCIDR:
     Type: String
   HomeIPCIDR:
@@ -95,6 +95,7 @@ Resources:
     Type: AWS::EC2::Instance
     DependsOn: VerifyPassword
     Properties:
+      IamInstanceProfile: !Ref InstanceProfile
       ImageId: !Ref EC2AMI
       InstanceType: !Ref InstanceType
       SecurityGroupIds:
@@ -148,7 +149,7 @@ Resources:
               Service: 'lambda.amazonaws.com'
             Action: 'sts:AssumeRole'
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
       Policies:
         - PolicyDocument:
             Version: '2012-10-17'
@@ -263,3 +264,23 @@ Resources:
       FunctionName: !GetAtt LambdaStartEC2.Arn
       Principal: 'events.amazonaws.com'
       SourceArn: !GetAtt CloudWatchStartEvent.Arn
+
+  IAMAdminRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - 'ec2.amazonaws.com'
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/AdministratorAccess'
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref IAMAdminRole
