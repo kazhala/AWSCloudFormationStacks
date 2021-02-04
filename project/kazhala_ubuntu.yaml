@@ -74,6 +74,8 @@ Resources:
 
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
     Properties:
       GroupDescription: SecurityGroup for Kevin development instance.
       SecurityGroupIngress:
@@ -84,6 +86,8 @@ Resources:
 
   SecurityGroupIngress:
     Type: AWS::EC2::SecurityGroupIngress
+    UpdateReplacePolicy: Retain
+    DeletionPolicy: Retain
     Properties:
       IpProtocol: tcp
       CidrIp: !Ref HomeIPCIDR
