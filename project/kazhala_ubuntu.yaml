@@ -86,8 +86,6 @@ Resources:
 
   SecurityGroupIngress:
     Type: AWS::EC2::SecurityGroupIngress
-    UpdateReplacePolicy: Retain
-    DeletionPolicy: Retain
     Properties:
       IpProtocol: tcp
       CidrIp: !Ref HomeIPCIDR
