@@ -1,0 +1,81 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  Remote backend for terraform states and locks.
+
+Parameters:
+  BucketName:
+    Type: String
+  TableName:
+    Type: String
+  EnableEncryption:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+      - 'true'
+      - 'false'
+  EnableDynamoDBOndemand:
+    Type: String
+    Default: 'false'
+    AllowedValues:
+      - 'true'
+      - 'false'
+  DynamoDBWCU:
+    Type: Number
+    Default: 5
+  DynamoDBRCU:
+    Type: Number
+    Default: 5
+
+Conditions:
+  Encryption: !Equals [!Ref EnableEncryption, 'true']
+  OndemandDynamoDB: !Equals [!Ref EnableDynamoDBOndemand, 'true']
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      BucketEncryption: !If
+        - Encryption
+        - ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: AES256
+        - !Ref AWS::NoValue
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  DynamoDB:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: LockID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: LockID
+          KeyType: HASH
+      BillingMode: !If
+        - OndemandDynamoDB
+        - PAY_PER_REQUEST
+        - PROVISIONED
+      ProvisionedThroughput: !If
+        - OndemandDynamoDB
+        - !Ref AWS::NoValue
+        - ReadCapacityUnits: !Ref DynamoDBRCU
+          WriteCapacityUnits: !Ref DynamoDBWCU
+      SSESpecification:
+        SSEEnabled: !If
+          - Encryption
+          - true
+          - false
+      TableName: !Ref TableName
+
+Outputs:
+  S3BucketName:
+    Value: !Ref S3Bucket
+  DynamoDBTableName:
+    Value: !Ref DynamoDB
+  Region:
+    Value: !Ref AWS::Region
