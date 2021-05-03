@@ -121,19 +121,22 @@ Resources:
             VolumeSize: !Ref EC2VolumeSize
             VolumeType: gp3
       UserData:
-        'Fn::Base64': !Sub |
-          #!/bin/bash -ex
-          apt update -y
-          apt install -y python
-          apt install -y python-setuptools
-          mkdir -p /opt/aws/bin
-          wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
-          python -m easy_install --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz
-          exec > >(sudo tee /var/log/user-data.log) 2>&1
-            sudo -u ubuntu bash -c "$(curl -fsSL https://raw.githubusercontent.com/kazhala/scripts/master/install/ubuntu_init.sh)"
-          sudo /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource UbuntuEC2 --region ${AWS::Region}
-          sudo echo ubuntu:${InstancePassword} | sudo chpasswd
-          rm aws-cfn-bootstrap-latest.tar.gz
+        'Fn::Base64': !If
+          - UseSSMAMI
+          - !Sub |
+            #!/bin/bash -ex
+            apt update -y
+            apt install -y python
+            apt install -y python-setuptools
+            mkdir -p /opt/aws/bin
+            wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+            python -m easy_install --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz
+            exec > >(sudo tee /var/log/user-data.log) 2>&1
+              sudo -u ubuntu bash -c "$(curl -fsSL https://raw.githubusercontent.com/kazhala/scripts/master/install/ubuntu_init.sh)"
+            sudo /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource UbuntuEC2 --region ${AWS::Region}
+            sudo echo ubuntu:${InstancePassword} | sudo chpasswd
+            rm aws-cfn-bootstrap-latest.tar.gz
+          - ''
       Tags:
         - Key: Name
           Value: kevin-dev
