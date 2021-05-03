@@ -136,7 +136,17 @@ Resources:
             sudo /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource UbuntuEC2 --region ${AWS::Region}
             sudo echo ubuntu:${InstancePassword} | sudo chpasswd
             rm aws-cfn-bootstrap-latest.tar.gz
-          - ''
+          - !Sub |
+            #!/bin/bash -ex
+            apt update -y
+            apt install -y python
+            apt install -y python-setuptools
+            mkdir -p /opt/aws/bin
+            wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+            python -m easy_install --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz
+            sudo /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource UbuntuEC2 --region ${AWS::Region}
+            sudo echo ubuntu:${InstancePassword} | sudo chpasswd
+            rm aws-cfn-bootstrap-latest.tar.gz
       Tags:
         - Key: Name
           Value: kevin-dev
