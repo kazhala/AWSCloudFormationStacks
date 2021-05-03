@@ -4,6 +4,9 @@ Description: >-
 
 Parameters:
   EC2AMI:
+    Type: String
+    Default: ''
+  LatestEC2AMI:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
     Default: /aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id
   InstanceType:
@@ -33,6 +36,9 @@ Parameters:
       - AEST
   NotificationEmail:
     Type: String
+
+Conditions:
+  UseSSMAMI: !Equals [!Ref EC2AMI, '']
 
 Mappings:
   CronExpression:
@@ -100,7 +106,10 @@ Resources:
     DependsOn: VerifyPassword
     Properties:
       IamInstanceProfile: !Ref InstanceProfile
-      ImageId: !Ref EC2AMI
+      ImageId: !If
+        - UseSSMAMI
+        - !Ref LatestEC2AMI
+        - !Ref EC2AMI
       InstanceType: !Ref InstanceType
       SecurityGroupIds:
         - !GetAtt SecurityGroup.GroupId
